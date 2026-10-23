@@ -66,6 +66,13 @@ PALETTE = {
     "vert_toxique_fonce": (78, 122, 40),
     "os": (228, 218, 190),
     "gris_clair": (160, 162, 160),
+    "gris_bleu": (84, 94, 118),
+    "gris_bleu_fonce": (48, 54, 72),
+    "gris_bleu_clair": (156, 164, 182),
+    "ronce": (128, 62, 140),
+    "ronce_fonce": (58, 32, 66),
+    "mure": (36, 22, 48),
+    "oeil_violet": (206, 96, 255),
 }
 
 GRID = 8          # 8 x 8 cases

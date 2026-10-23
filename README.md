@@ -32,6 +32,7 @@ Sorties :
 |---|---|---|---|---|---|
 | Prairie | **Bélier Colosse** (`Gardien_Prairie_Belier`) ✅ validé (commit `59db35f`) | tank / boss — bête couverte d'écailles, pattes à frange d'écailles et grands pieds griffus, longue gueule à crocs et mâchoire massive à plaques, cornes annelées | ≈ 11 × 33 × 14 (haut) | 12 | ~21 200 (max ~4 100 par pièce) |
 | **Champ** | **Rat Ravageur** (`Gardien_Champ_Rat`) ✅ validé (commit `d37058e`) | rapide et vicieux — rat mutant au dos voûté, **fourrure** anthracite à fines traînées vert toxique, épines couleur os, épis de blé mutants sur le dos, incisives jaunes, moustaches, gueule à crocs, yeux rouges, mains roses à 4 doigts + pouce, longs pieds à plat, queue annelée épineuse | ≈ 10 × 34 × 13 (haut) | 13 | ~33 600 (max ~7 500 par pièce) |
+| **Forêt** | **Loup des Ronces** (`Gardien_Foret_Loup`) | chasseur rapide — loup mutant élancé, fourrure gris-bleu nuit, crinière, ronces violettes enroulées (épines, feuilles, mûres), crête d'épines blanches, gueule à crocs, grandes oreilles pointues, yeux violets, longue queue touffue | ≈ 7 × 29 × 13 (haut) | 13 | ~34 800 (max ~8 400 par pièce) |
 | Prairie | **Grand Lièvre Sentinelle** (`Gardien_Prairie_Lievre`) | vigie, rapide — style « blocs » chibi | ≈ 7 × 6 × 16 (haut) | 10 | ~2200 |
 
 ![Bélier](previews/Gardien_Prairie_Belier_avant.png)
@@ -42,16 +43,18 @@ Sorties :
 ![Rat](previews/Gardien_Champ_Rat_avant.png)
 ![Rat, tête](previews/Gardien_Champ_Rat_tete.png)
 ![Rat, tête de profil](previews/Gardien_Champ_Rat_tete_profil.png)
+![Loup](previews/Gardien_Foret_Loup_avant.png)
+![Loup, tête](previews/Gardien_Foret_Loup_tete.png)
 ![Lièvre](previews/Gardien_Prairie_Lievre_avant.png)
 
 ## Conseils d'import dans Roblox
 
 - **Échelle** : 1 unité Blender = 1 stud (un joueur fait ~5 studs). Si la taille ne colle pas, ajuste l'échelle dans l'importeur.
-- **Yeux** : les pièces `Oeil_G` / `Oeil_D` sont séparées. Bélier (iris ambre) et Rat (iris rouge) : mets `Material = Neon` pour qu'il brille. Lièvre : yeux noirs brillants (garder `SmoothPlastic`).
+- **Yeux** : les pièces `Oeil_G` / `Oeil_D` sont séparées. Bélier (iris ambre), Rat (iris rouge) et Loup (iris violet) : mets `Material = Neon` pour qu'il brille. Lièvre : yeux noirs brillants (garder `SmoothPlastic`).
 - **Animation (Lièvre)** : les pièces sont nommées et séparées (Tete, Oreille_D, Bras_G, Baton…) pour être reliées par des `Motor6D`.
 - **Orientation** : les modèles regardent vers l'avant (-Y dans Blender) ; tourne le modèle dans Studio si besoin.
 
-## Animations des gardiens (Bélier, Rat)
+## Animations des gardiens (Bélier, Rat, Loup)
 
 Code commun : `lib/animation.py` ; chaque modèle a ses réglages (`ANIM` dans son script) et un petit module
 `scripts/animations_<modele>.py`. Squelette de 24 os (Racine, Torse, Tete, Machoire, Paupiere_G/D, Queue1-4, 3 à 4 os par patte + pied). Les pièces sont liées
@@ -59,8 +62,8 @@ aux os ; la queue et les pattes se plient en douceur. Les pieds restent posés a
 
 | Animation | Durée | Boucle | Aperçu |
 |---|---|---|---|
-| `Marche` | 1,3 s | oui | pas en diagonale sur place (Bélier ~4,5 studs/s, Rat ~3,9) |
-| `Course` | 0,7 s | oui | galop, grandes foulées (Bélier ~11,5 studs/s, Rat ~8,5) |
+| `Marche` | 1,3 s | oui | pas en diagonale sur place (Bélier ~4,5 studs/s, Rat ~3,9, Loup ~5,1) |
+| `Course` | 0,7 s | oui | galop, grandes foulées (Bélier ~11,5 studs/s, Rat ~8,5, Loup ~10,9) |
 | `Sommeil` | 3,0 s | oui | couché en sphinx, yeux fermés, queue enroulée, respiration lente |
 | `CoupDeCroc` | 1,2 s | non | recul, gueule grande ouverte, attaque, claquement |
 
@@ -70,6 +73,8 @@ aux os ; la queue et les pattes se plient en douceur. Les pieds restent posés a
 ![Coup de croc](previews/Gardien_Prairie_Belier_anim_CoupDeCroc.gif)
 ![Rat, course](previews/Gardien_Champ_Rat_anim_Course.gif)
 ![Rat, coup de croc](previews/Gardien_Champ_Rat_anim_CoupDeCroc.gif)
+![Loup, course](previews/Gardien_Foret_Loup_anim_Course.gif)
+![Loup, coup de croc](previews/Gardien_Foret_Loup_anim_CoupDeCroc.gif)
 
 Fichiers (dans `exports/<Nom>/`, ex. `Gardien_Champ_Rat`) :
 - `<Nom>_rig.fbx` : modèle + squelette.

@@ -17,7 +17,8 @@ reptile lumineux, pattes écaillées à ergots. Chaque zone ajoute sa touche (Pr
 Champ : épis de blé mutants sur le dos).
 **Chaque gardien a sa propre palette** (l'utilisateur a refusé un rat aux couleurs du Bélier) : mêmes formes,
 couleurs différentes. Bélier : sable + zigzags rouille, épines noires, yeux ambre. Rat : anthracite + zigzags vert
-toxique, épines couleur os, yeux rouges. Pour un nouveau gardien, choisir une palette nettement différente des
+toxique, épines couleur os, yeux rouges. Loup (Forêt) : gris-bleu nuit (dos foncé, ventre clair),
+ronces violettes, épines blanches, yeux violets. Pour un nouveau gardien, choisir une palette nettement différente des
 précédents et l'annoncer à l'utilisateur.
 
 ## Mise en route
@@ -90,6 +91,10 @@ Paramètres de surface d'un Ellipsoid : `t` ∈ [-1, 1] le long de l'axe, `a` en
 - **Poils (rat)** : mèches couchées, `souleve` ≈ 0,05–0,12 (au-delà de ~0,25 ça fait hérisson), plus courtes et
   plus rases sur la tête et le museau ; couleur d'accent en **fines traînées** seulement (sinon on dirait de l'herbe).
   La fourrure coûte plus cher en triangles que les écailles (~7 500 pour le corps du rat) : surveiller `m.stats()`.
+- **Ronces / lianes enroulées** (loup) : `spirale(ell, ...)` + `ronce(...)` dans `gardien_loup.py` ; les poser
+  avec `lift` ≈ 0,25 au-dessus des poils (trop haut = cerceaux qui flottent, trop bas = invisibles sous la fourrure).
+- **Longues pattes** (loup) : au repos, garder le coude bien replié ; une patte presque tendue n'a plus de réserve
+  quand le corps se cabre au galop (le vérificateur le signale : écart cheville/cible > 0,15).
 - **Pattes de rat** : mains à paume rose, 4 doigts à jointures + petit pouce ; pieds arrière longs posés à plat
   jusqu'au talon, 5 doigts ; griffes sombres (pas couleur os, sinon on les confond avec les épines).
 - **Écailles plaquées**, sinon l'animal paraît « poilu » : `h` ≈ 0,08–0,17 et `tilt` ≤ 8 sur le corps,
