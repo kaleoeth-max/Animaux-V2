@@ -103,12 +103,6 @@ def corps(m):
 
 # ---------------------------------------------------------------------------- pattes
 
-def couleur_patte(t, a, rng):
-    if t > -0.1 + 0.4 * zigzag(a / 120):
-        return "rouille"
-    return "sable_fonce" if rng.random() < 0.3 else "sable"
-
-
 def patte(m, nom, x, y, avant):
     s = 1 if x > 0 else -1
     epaule = Vector((x, y, 5.9))
@@ -117,12 +111,10 @@ def patte(m, nom, x, y, avant):
     haut = Ellipsoid.between(epaule, coude, 1.15, 1.25)
     bas = Ellipsoid.between(coude, cheville, 0.9)
     epaule_vol = Ellipsoid((x, y, 6.0), (1.5, 1.8, 2.0))
-    pieces = [m.ellipsoid("epaule", "sable_fonce", epaule_vol),
-              m.ellipsoid("haut", "sable_fonce", haut),
-              m.ellipsoid("bas", "sable_fonce", bas)]
-    pieces += m.scales("ee", epaule_vol, 4, (-0.8, 0.8), (-90, 270), couleur_corps, BAS, 0.95, h=0.16, tilt=8)
-    pieces += m.scales("eh", haut, 4, (-0.8, 0.85), (0, 360), couleur_patte, None, 0.9, h=0.15, tilt=8)
-    pieces += m.scales("eb", bas, 4, (-0.85, 0.85), (0, 360), couleur_patte, None, 0.8, h=0.14, tilt=8)
+    # pattes lisses (sans écailles) : simples volumes facettés, sable en haut, rouille en bas
+    pieces = [m.ellipsoid("epaule", "sable", epaule_vol, jitter=0.08, seed=1),
+              m.ellipsoid("haut", "sable_fonce", haut, jitter=0.06, seed=2),
+              m.ellipsoid("bas", "rouille", bas, jitter=0.05, seed=3)]
 
     # ergots derrière le coude
     for k in range(2):
@@ -138,8 +130,6 @@ def patte(m, nom, x, y, avant):
         bout = pied + d * 1.75 + Vector((0, 0, -0.15))
         pieces.append(m.tube(f"doigt{k}", "sable", [pied + d * 0.6, pied + d * 1.2 + Vector((0, 0, 0.05)), bout],
                              [0.42, 0.36, 0.3], sides=5))
-        pieces.append(m.kite(f"ecdoigt{k}", "rouille", pied + d * 1.1 + Vector((0, 0, 0.3)), (0, 0, 1), d,
-                             0.55, 0.8, 0.18, tilt=8))
         pieces.append(m.spike(f"griffe{k}", "brun_noir", bout, d, BAS, 0.95, 0.26, bend=0.7))
     pieces.append(m.spike("griffe_arr", "brun_noir", pied + Vector((0, 1.2, 0.2)), (0, 1, 0.2), BAS, 0.7, 0.22,
                           bend=0.6))
@@ -252,7 +242,7 @@ def tete(m):
                                   bend=0.15, sides=4, steps=1))
         obj, pts, radii = corne(m, s)
         pieces.append(obj)
-        dedans = verifie_cornes(pts, radii)
+        dedans = verifie_cornes(pts[1:], radii[1:])  # le 1er point est la racine, enfouie dans le crâne
         if dedans:
             print(f"ATTENTION : la corne {'G' if s > 0 else 'D'} touche le corps ({len(dedans)} points)")
     # couronne d'épines à l'arrière du crâne
@@ -271,8 +261,10 @@ def tete(m):
                                 (0, -0.1, 1), (0, -1, 0), 0.32 + 0.08 * (k % 2), 0.12, bend=0.1,
                                 sides=4, steps=1))
         # défenses : sortent du bord de la mâchoire et remontent le long du museau, côté extérieur
-        mach.append(m.spike(f"defense{s}", "dent", (s * bord(MACHOIRE, -11.2, 5.25, 0.95), -11.2, 5.25),
-                            (0.45 * s, -0.2, 1), (s, 0, 0), 1.0, 0.2, bend=0.35))
+        base = (s * bord(MACHOIRE, -11.0, 5.2, 0.7), -11.0, 5.2)  # plantée DANS la mâchoire
+        assert MACHOIRE.inside(base), "la défense doit partir de la mâchoire"
+        mach.append(m.spike(f"defense{s}", "dent", base, (0.18 * s, -0.15, 1), (s, 0, 0), 1.25, 0.22,
+                            bend=0.3))
     machoire = m.join("Machoire", mach)
     # gueule entrouverte : la mâchoire pivote autour de la charnière
     m.rotate_about([machoire], 14, "X", CHARNIERE)
@@ -284,7 +276,9 @@ def tete(m):
 def corne(m, s):
     """Corne annelée de bélier : part du haut du crâne, passe derrière l'oeil, descend et revient
     vers l'avant le long de la joue. Elle reste autour de la tête, sans toucher le cou ni le corps."""
-    pts, radii = [], []
+    # racine plantée dans le crâne, puis la spirale
+    pts, radii = [(0.45 * s, -8.9, 7.7)], [0.9]
+    assert CRANE.inside(pts[0]), "la corne doit partir du crâne"
     n, tours = 56, 0.92
     for i in range(n):
         u = i / (n - 1)
