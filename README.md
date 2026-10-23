@@ -31,7 +31,7 @@ Sorties :
 | Zone | Gardien | Rôle | Taille (studs) | Pièces | Triangles |
 |---|---|---|---|---|---|
 | Prairie | **Bélier Colosse** (`Gardien_Prairie_Belier`) ✅ validé (commit `59db35f`) | tank / boss — bête couverte d'écailles, pattes à frange d'écailles et grands pieds griffus, longue gueule à crocs et mâchoire massive à plaques, cornes annelées | ≈ 11 × 33 × 14 (haut) | 12 | ~21 200 (max ~4 100 par pièce) |
-| **Champ** | **Rat Ravageur** (`Gardien_Champ_Rat`) | rapide et vicieux — rat mutant au dos voûté, écailles anthracite à zigzags vert toxique, épines couleur os, épis de blé mutants sur le dos, incisives jaunes, moustaches, gueule à crocs, yeux rouges, queue annelée épineuse | ≈ 10 × 34 × 13 (haut) | 13 | ~20 900 (max ~4 600 par pièce) |
+| **Champ** | **Rat Ravageur** (`Gardien_Champ_Rat`) | rapide et vicieux — rat mutant au dos voûté, **fourrure** anthracite à fines traînées vert toxique, épines couleur os, épis de blé mutants sur le dos, incisives jaunes, moustaches, gueule à crocs, yeux rouges, mains roses à 4 doigts + pouce, longs pieds à plat, queue annelée épineuse | ≈ 10 × 34 × 13 (haut) | 13 | ~33 600 (max ~7 500 par pièce) |
 | Prairie | **Grand Lièvre Sentinelle** (`Gardien_Prairie_Lievre`) | vigie, rapide — style « blocs » chibi | ≈ 7 × 6 × 16 (haut) | 10 | ~2200 |
 
 ![Bélier](previews/Gardien_Prairie_Belier_avant.png)

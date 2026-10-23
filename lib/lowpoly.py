@@ -350,6 +350,45 @@ class Model:
             radii.append(radius * (1 - u))
         return self.tube(name, color, pts, radii, sides=sides)
 
+    def meche(self, name, color, root, normal, flow, length, radius, souleve=0.25):
+        """Mèche de poil low poly : lame triangulaire aplatie qui part de la peau, se soulève un peu
+        puis retombe vers `flow` (le sens du poil)."""
+        n = Vector(normal).normalized()
+        f = Vector(flow) - n * Vector(flow).dot(n)
+        f = f.normalized() if f.length > 1e-4 else n.orthogonal().normalized()
+        root = Vector(root)
+        pts = [root - n * 0.05,
+               root + f * length * 0.45 + n * length * souleve * 0.6,
+               root + f * length + n * length * souleve * 0.3]
+        return self.tube(name, color, pts, [radius, radius * 0.7, 0.0], sides=3, ring_scale=(1.0, 0.3), up=n)
+
+    def fur(self, prefix, ell, rows, t_range, a_range, color_fn, flow, pas, souleve=0.25, longueur=1.5,
+            size=1.0, seed=0):
+        """Couvre une zone d'un Ellipsoid de mèches de poil (mêmes paramètres de répartition que `scales`).
+        `longueur` : longueur d'une mèche par rapport à l'écart entre deux rangées."""
+        rng = random.Random(f"{self.name}:{prefix}:{seed}")
+        out = []
+        t0, t1 = t_range
+        dt = (t1 - t0) / max(rows - 1, 1)
+        for i in range(rows):
+            t = t0 + dt * i
+            ring = math.sqrt(max(0.0, 1 - t * t)) * (ell.r.x + ell.r.z) / 2
+            arc = math.radians(a_range[1] - a_range[0]) * ring
+            cols = max(2, round(arc / pas))
+            da = (a_range[1] - a_range[0]) / cols
+            for k in range(cols):
+                a = a_range[0] + da * (k + 0.5 * (i % 2)) + rng.uniform(-0.2, 0.2) * da
+                tt = t + rng.uniform(-0.15, 0.15) * dt
+                n = ell.normal(tt, a)
+                fl = Vector(flow if flow is not None else ell.axis())
+                # un peu de désordre dans le sens du poil
+                fl = fl + n.cross(fl).normalized() * rng.uniform(-0.3, 0.3) if n.cross(fl).length > 1e-4 else fl
+                largeur = max(math.radians(da) * ring * 0.6, 0.08) * size
+                long_ = max(ell.r.y * dt * longueur, 0.3) * size * rng.uniform(0.85, 1.2)
+                out.append(self.meche(f"{prefix}{i}_{k}", color_fn(tt, a, rng), ell.point(tt, a, 0.0), n, fl,
+                                      long_, largeur, souleve * rng.uniform(0.7, 1.3)))
+        return out
+
     def scales(self, prefix, ell, rows, t_range, a_range, color_fn, flow, pas, h=0.22, tilt=18,
                size=1.0, seed=0):
         """Couvre une zone d'un Ellipsoid d'écailles qui se chevauchent (rangées décalées).

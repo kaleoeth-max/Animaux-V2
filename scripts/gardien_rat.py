@@ -41,10 +41,10 @@ ANIM = dict(
 
 
 def couleur_corps(t, a, rng):
-    """Écailles anthracite sur le dessus, flancs en zigzags vert toxique (sa palette à lui, pas celle du Bélier)."""
+    """Poil anthracite, avec une fine traînée vert toxique en zigzag sur les flancs (sa palette à lui)."""
     lat = math.sin(math.radians(a))
     decale = 0.0 if math.cos(math.radians(a)) >= 0 else 0.37
-    if lat < -0.1 + 0.45 * zigzag(t * 2.2 + decale):
+    if abs(lat + 0.2 - 0.35 * zigzag(t * 2.2 + decale)) < 0.1:  # fine traînée toxique en zigzag
         return "vert_toxique"
     return "anthracite_fonce" if rng.random() < 0.3 else "anthracite"
 
@@ -90,13 +90,14 @@ def build():
 def corps(m):
     pieces = [m.ellipsoid(f"vol{i}", "anthracite_fonce", e, jitter=0.08, seed=i) for i, e in enumerate(TORSE)]
     pieces.append(m.ellipsoid("ventre", "gris_clair", VENTRE))
-    zones = ((COU, 5, (-0.85, 0.6), 0.9), (POITRAIL, 6, (-0.9, 0.55), 1.0),
-             (DOS, 7, (-0.75, 0.8), 1.15), (HANCHES, 6, (-0.45, 0.95), 1.1))
-    for i, (e, rangs, plage, pas) in enumerate(zones):
-        pieces += m.scales(f"ec{i}_", e, rangs, plage, (-90, 270), couleur_corps, ARRIERE, pas, h=0.15,
-                           tilt=8, seed=i)
-    pieces += m.scales("ev_", VENTRE, 7, (-0.8, 0.8), (225, 315),
-                       lambda t, a, r: "gris_clair" if r.random() < 0.7 else "anthracite", ARRIERE, 0.75, h=0.12, tilt=6)
+    # fourrure : mèches de poil qui partent vers l'arrière (plus longues sur le dos voûté)
+    zones = ((COU, 7, (-0.85, 0.6), 0.7, 1.6), (POITRAIL, 8, (-0.9, 0.55), 0.75, 1.6),
+             (DOS, 10, (-0.75, 0.8), 0.8, 1.9), (HANCHES, 8, (-0.45, 0.95), 0.8, 1.7))
+    for i, (e, rangs, plage, pas, longueur) in enumerate(zones):
+        pieces += m.fur(f"po{i}_", e, rangs, plage, (-90, 270), couleur_corps, ARRIERE, pas, souleve=0.12,
+                        longueur=longueur, seed=i)
+    pieces += m.fur("pv_", VENTRE, 8, (-0.8, 0.8), (225, 315),
+                    lambda t, a, r: "gris_clair" if r.random() < 0.75 else "anthracite", ARRIERE, 0.6, souleve=0.08)
 
     # crête d'épines (vertèbres mutantes), plus hautes sur le dos voûté
     rng = random.Random("crete")
@@ -169,66 +170,80 @@ def articulations(x, y, avant):
 
 
 def patte(m, nom, x, y, avant):
+    """Patte de rat : avant = épaule, bras, coude touffu, avant-bras, main à 4 doigts + pouce ;
+    arrière = grosse cuisse, jambe, long pied posé à plat jusqu'au talon, 5 longs doigts."""
     s = 1 if x > 0 else -1
+    poil_bas = lambda t, a, r: "vert_toxique" if r.random() < 0.08 else ("anthracite_fonce", "anthracite")[r.randrange(2)]  # noqa: E731,E501
     if avant:
         haut_, milieu, poignet = articulations(x, y, avant)
-        epaule = Ellipsoid((x + 0.1 * s, y, 5.3), (1.4, 1.7, 1.8))
-        biceps = Ellipsoid.between(haut_, milieu, 1.0, 1.1, extra=1.05, up=(0, 1, 0))
-        pieces = [m.ellipsoid("epaule", "anthracite_fonce", epaule), m.ellipsoid("biceps", "anthracite_fonce", biceps)]
-        pieces += m.scales("ee", epaule, 5, (-0.85, 0.85), (-90, 270), couleur_corps, BAS, 0.7, h=0.14, tilt=7)
-        pieces += m.scales("eb", biceps, 4, (-0.8, 0.8), (0, 360), couleur_corps, None, 0.6, h=0.12, tilt=7, seed=1)
-        segments = [(milieu, poignet, [0.85, 0.75, 0.65])]
+        epaule = Ellipsoid((x + 0.1 * s, y, 5.3), (1.5, 1.8, 1.9))
+        bras = Ellipsoid.between(haut_, milieu, 1.15, 1.2, extra=1.08, up=(0, 1, 0))
+        pieces = [m.ellipsoid("epaule", "anthracite_fonce", epaule), m.ellipsoid("bras", "anthracite_fonce", bras)]
+        pieces += m.fur("pe", epaule, 7, (-0.85, 0.85), (-90, 270), couleur_corps, BAS, 0.6, souleve=0.12)
+        pieces += m.fur("pb", bras, 6, (-0.8, 0.85), (0, 360), couleur_corps, None, 0.55, souleve=0.12, seed=1)
+        segments = [(milieu, poignet, [1.0, 0.88, 0.78])]
     else:
         haut_, milieu, jarret, poignet = articulations(x, y, avant)
-        cuisse = Ellipsoid((x + 0.2 * s, y - 0.2, 5.0), (1.9, 2.5, 2.4))
+        cuisse = Ellipsoid((x + 0.2 * s, y - 0.2, 5.0), (1.95, 2.6, 2.5))
         pieces = [m.ellipsoid("cuisse", "anthracite_fonce", cuisse)]
-        pieces += m.scales("ec", cuisse, 6, (-0.85, 0.85), (-90, 270), couleur_corps, Vector((0, 0.5, -1)), 0.85,
-                           h=0.15, tilt=7)
-        segments = [(milieu, jarret, [0.9, 0.8, 0.65]), (jarret, poignet, [0.7, 0.65, 0.62])]
-        pieces.append(m.spike("ergot_jarret", "os", jarret + Vector((0, 0.45, 0.1)), (0.2 * s, 1, 0.2),
-                              Vector((0, 0.3, 1)), 1.0, 0.26, bend=0.3))
-    pieces.append(m.ico("articulation", "anthracite_fonce", milieu, 0.85, jitter=0.07, seed=4))
+        pieces += m.fur("pc", cuisse, 9, (-0.85, 0.9), (-90, 270), couleur_corps, Vector((0, 0.6, -1)), 0.7,
+                        souleve=0.12, longueur=1.7)
+        segments = [(milieu, jarret, [0.95, 0.85, 0.7]), (jarret, poignet, [0.72, 0.68, 0.66])]
+    pieces.append(m.ico("articulation", "anthracite_fonce", milieu, 0.9, jitter=0.06, seed=4))
 
     for i, (p1, p2, rayons) in enumerate(segments):
         d = (p2 - p1).normalized()
-        seg = Ellipsoid.between(p1, p2, rayons[0], extra=1.12, up=(0, 1, 0))
-        bas = Ellipsoid.between(p1.lerp(p2, 0.45), p2 + d * 0.4, rayons[-1] * 1.1, extra=1.15, up=(0, 1, 0))
+        seg = Ellipsoid.between(p1, p2, rayons[0], extra=1.15, up=(0, 1, 0))  # a=0 : +X, 90 : arrière, 270 : avant
+        bas = Ellipsoid.between(p1.lerp(p2, 0.5), p2 + d * 0.35, rayons[-1] * 1.1, extra=1.15, up=(0, 1, 0))
         pieces.append(m.ellipsoid(f"seg{i}", "anthracite_fonce", seg))
         pieces.append(m.ellipsoid(f"bas{i}", "anthracite_fonce", bas))
-        pieces += m.scales(f"es{i}", seg, 5, (-0.85, 0.6), (0, 360), couleur_patte, None, 0.5, h=0.09, tilt=5,
-                           seed=10 + i)
-        pieces += m.scales(f"eb{i}", bas, 4, (-0.3, 0.85), (0, 360),
-                           lambda t, a, r: "vert_toxique" if r.random() < 0.5 else "anthracite_fonce", None, 0.45,
-                           h=0.08, tilt=4, seed=20 + i)
-        pieces.append(m.spike(f"epine{i}", "os", seg.point(-0.2, 90), seg.normal(-0.2, 90) + Vector((0, 0, 0.3)),
-                              d, 0.8, 0.22, bend=0.35))
-    for k in range(2):  # ergots derrière le coude / genou
-        pieces.append(m.spike(f"ergot{k}", "os", milieu + Vector((0, 0.65, 0.3 - 0.6 * k)),
-                              (0.3 * s, 1, 0.3), BAS, 1.0 - 0.3 * k, 0.24, bend=0.3))
+        pieces += m.fur(f"ps{i}", seg, 6, (-0.85, 0.7), (0, 360), poil_bas, None, 0.5, souleve=0.1, seed=10 + i)
+        pieces += m.fur(f"pp{i}", bas, 4, (-0.2, 0.8), (0, 360), poil_bas, None, 0.45, souleve=0.08, seed=20 + i)
+    # touffe de poils et épine couleur os derrière le coude / genou
+    for k in range(5):
+        a = math.radians(-40 + 20 * k)
+        pieces.append(m.meche(f"touffe{k}", "anthracite_fonce" if k % 2 else "anthracite",
+                              milieu + Vector((0.4 * math.sin(a), 0.6, 0.3 * math.cos(a))),
+                              (0.4 * math.sin(a), 1, 0.2), BAS, 1.1, 0.2, souleve=0.2))
+    pieces.append(m.spike("ergot", "os", milieu + Vector((0, 0.75, 0.0)), (0.3 * s, 1, 0.3), BAS, 1.0, 0.24,
+                          bend=0.3))
 
-    # main (avant, 4 doigts) ou long pied (arrière, 5 doigts) : doigts roses de rat, griffes noires
+    griffe = lambda nom_, bout, d, longueur: m.spike(nom_, "brun_noir", bout, d + Vector((0, 0, 0.12)), BAS,  # noqa: E731
+                                                     longueur, 0.17, bend=0.5, steps=5)
     if avant:
-        pied = Vector((poignet.x, poignet.y - 0.4, 0.5))
-        vol = Ellipsoid(pied, (0.95, 1.15, 0.5))
-        angles, long_doigt = (-36, -12, 12, 36), 1.25
+        # main : paume rose, 4 doigts à jointures, petit pouce sur le côté intérieur
+        main = Vector((poignet.x, poignet.y - 0.45, 0.42))
+        pieces.append(m.ellipsoid("paume", "rose_queue", Ellipsoid(main, (0.85, 0.85, 0.42)), jitter=0.03))
+        pieces.append(m.ellipsoid("dos_main", "anthracite_fonce", Ellipsoid(main + Vector((0, 0.15, 0.18)),
+                                                                           (0.8, 0.8, 0.36))))
+        pieces += m.fur("pm", Ellipsoid(main + Vector((0, 0.15, 0.18)), (0.8, 0.8, 0.36)), 3, (-0.5, 0.6), (40, 140),
+                        poil_bas, Vector((0, -1, 0)), 0.35, souleve=0.06, longueur=1.2)
+        doigts = [(ang, 1.2 if abs(ang) < 20 else 1.0) for ang in (-33, -11, 11, 33)]
+        pouce = (-75 * s, 0.6)
+        depart = main + Vector((0, -0.5, 0))
     else:
-        pied = Vector((poignet.x, poignet.y - 0.9, 0.5))
-        vol = Ellipsoid(pied, (1.05, 1.9, 0.5))
-        angles, long_doigt = (-38, -19, 0, 19, 38), 1.0
-    pieces.append(m.ellipsoid("pied", "anthracite_fonce", vol))
-    pieces += m.scales("ep", vol, 3, (-0.6, 0.75), (25, 155), couleur_patte, Vector((0, -1, 0)), 0.5, h=0.08, tilt=4)
-    avant_pied = pied + Vector((0, -vol.r.y * 0.6, 0))
-    for k, ang in enumerate(angles):
+        # long pied de rat posé à plat : talon au sol, 5 longs doigts
+        talon = Vector((poignet.x, poignet.y + 0.2, 0.4))
+        pied = Vector((poignet.x, poignet.y - 1.1, 0.4))
+        vol = Ellipsoid.between(talon, pied + Vector((0, -0.9, 0)), 0.85, 0.4, extra=1.05)
+        pieces.append(m.ellipsoid("pied", "anthracite_fonce", vol))
+        pieces.append(m.ellipsoid("plante", "rose_queue", Ellipsoid(pied + Vector((0, 0.2, -0.12)), (0.75, 1.6, 0.25))))
+        pieces += m.fur("pf", vol, 4, (-0.8, 0.6), (35, 145), poil_bas, Vector((0, -1, 0)), 0.4, souleve=0.06,
+                        longueur=1.2)
+        doigts = [(ang, 1.15 if abs(ang) < 25 else 0.95) for ang in (-36, -18, 0, 18, 36)]
+        pouce = None
+        depart = pied + Vector((0, -0.85, 0))
+    for k, (ang, long_) in enumerate(doigts + ([pouce] if pouce else [])):
         r = math.radians(ang)
         d = Vector((math.sin(r), -math.cos(r), 0))
-        long_ = long_doigt * (1.0 if abs(ang) < 20 else 0.85)
-        base = avant_pied + d * 0.2
-        jointure = avant_pied + d * (0.55 * long_) + Vector((0, 0, 0.15))
-        bout = avant_pied + d * long_ + Vector((0, 0, -0.17))
-        pieces.append(m.tube(f"doigt{k}", "rose_queue", [base, jointure, bout], [0.3, 0.26, 0.21], sides=6))
-        pieces.append(m.ico(f"jointure{k}", "rose_queue", jointure, (0.24, 0.24, 0.2), subdiv=1))
-        pieces.append(m.spike(f"griffe{k}", "os", bout, d + Vector((0, 0, 0.12)), BAS, 0.85, 0.2,
-                              bend=0.5, steps=5))
+        base = depart + d * 0.15
+        jointure = depart + d * (0.55 * long_) + Vector((0, 0, 0.12))
+        bout = depart + d * long_ + Vector((0, 0, -0.12))
+        epais = 0.24 if k < len(doigts) else 0.2
+        pieces.append(m.tube(f"doigt{k}", "rose_queue", [base, jointure, bout], [epais, epais * 0.85, epais * 0.7],
+                             sides=6))
+        pieces.append(m.ico(f"jointure{k}", "rose_queue", jointure, (epais * 0.85,) * 3, subdiv=1))
+        pieces.append(griffe(f"griffe{k}", bout, d, 0.7 * long_))
     m.join(f"Patte_{nom}", pieces)
 
 
@@ -296,10 +311,11 @@ def tete(m):
               m.ellipsoid("nez", "anthracite", NEZ, jitter=0.03),
               m.ellipsoid("gencive", "gueule", GENCIVE_HAUT),
               m.ico("truffe", "rose_queue", (0, -12.2, 5.62), (0.42, 0.34, 0.34), subdiv=1)]
-    pieces += m.scales("ec", CRANE, 7, (-0.85, 0.75), (28, 152), peau, ARRIERE, 0.5, h=0.08, tilt=3, size=0.8)
-    pieces += m.scales("en", NEZ, 6, (-0.85, 0.6), (40, 140), peau, ARRIERE, 0.42, h=0.07, tilt=3, size=0.8, seed=1)
-    pieces += m.scales("em", MUSEAU, 5, (-0.75, 0.4), (20, 160), peau, ARRIERE, 0.4, h=0.06, tilt=2, size=0.8,
-                       seed=2)
+    # poil court sur la tête, plus ras vers le bout du museau
+    pieces += m.fur("pc", CRANE, 9, (-0.85, 0.8), (25, 155), peau, ARRIERE, 0.42, souleve=0.08, longueur=1.6)
+    pieces += m.fur("pn", NEZ, 8, (-0.85, 0.6), (35, 145), peau, ARRIERE, 0.36, souleve=0.05, longueur=1.4, seed=1)
+    pieces += m.fur("pm", MUSEAU, 6, (-0.75, 0.4), (15, 165), peau, ARRIERE, 0.34, souleve=0.03, longueur=1.3,
+                    size=0.85, seed=2)
     for s in (1, -1):
         # narine sur la truffe
         narine = (0.2 * s, -12.5, 5.66)
@@ -369,7 +385,8 @@ def tete(m):
         mach.append(m.ellipsoid(f"angle{s}", "anthracite_fonce", Ellipsoid((0.85 * s, -7.9, 4.25), (0.5, 0.9, 0.6)),
                                 jitter=0.04, seed=6))
         cote = (-40, 25) if s > 0 else (155, 220)
-        mach += m.scales(f"pj{s}", MACHOIRE, 4, (-0.8, 0.7), cote, plaque, ARRIERE, 0.6, h=0.1, tilt=7, seed=7 + s)
+        mach += m.fur(f"pj{s}", MACHOIRE, 6, (-0.8, 0.7), cote, plaque, ARRIERE, 0.45, souleve=0.06, longueur=1.4,
+                      seed=7 + s)
         for k in range(8):  # frange d'écailles pointues sous la mâchoire
             y = -10.7 + 0.38 * k
             t = (y - MACHOIRE.c.y) / MACHOIRE.r.y

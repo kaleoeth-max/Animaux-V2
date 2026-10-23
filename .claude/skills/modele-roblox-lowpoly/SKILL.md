@@ -54,6 +54,7 @@ python3 scripts/gardien_belier.py       # exemple : export + aperçus
 | `m.ellipsoid(nom, couleur, ell)` | volume de base à partir d'un Ellipsoid |
 | `m.scales(prefixe, ell, rangs, plage_t, plage_a, couleur_fn, flow, pas, h, tilt, size)` | écailles qui se chevauchent sur un Ellipsoid |
 | `m.kite(...)` | une écaille / plaque ; `m.spike(...)` : épine, dent, griffe courbe |
+| `m.fur(...)` / `m.meche(...)` | **poils** au lieu d'écailles : mèches plates couchées vers l'arrière (mêmes paramètres de répartition que `scales`, plus `souleve` et `longueur`) |
 | `lp.zigzag(x)` | motif en zigzag pour `couleur_fn` (ex. rayures rouille sur les flancs) |
 | `m.rotate_about / m.scale_about` | ajuster une pièce (ex. ouvrir la mâchoire autour de la charnière) |
 | `m.export()` | FBX (texture intégrée) + GLB dans `exports/<nom>/` |
@@ -86,6 +87,11 @@ Paramètres de surface d'un Ellipsoid : `t` ∈ [-1, 1] le long de l'axe, `a` en
 - **Rien ne doit traverser le corps** : vérifier qu'une corne ne rentre pas dans le cou/torse/épaules
   (`verifie_cornes` dans `gardien_belier.py`), en ignorant la racine volontairement enfouie.
 - **Rien sous le sol** au repos (point le plus bas ≈ 0) : griffes courbées jusqu'au sol, pas à travers.
+- **Poils (rat)** : mèches couchées, `souleve` ≈ 0,05–0,12 (au-delà de ~0,25 ça fait hérisson), plus courtes et
+  plus rases sur la tête et le museau ; couleur d'accent en **fines traînées** seulement (sinon on dirait de l'herbe).
+  La fourrure coûte plus cher en triangles que les écailles (~7 500 pour le corps du rat) : surveiller `m.stats()`.
+- **Pattes de rat** : mains à paume rose, 4 doigts à jointures + petit pouce ; pieds arrière longs posés à plat
+  jusqu'au talon, 5 doigts ; griffes sombres (pas couleur os, sinon on les confond avec les épines).
 - **Écailles plaquées**, sinon l'animal paraît « poilu » : `h` ≈ 0,08–0,17 et `tilt` ≤ 8 sur le corps,
   plus fins sur la tête (`h` ≈ 0,06–0,1, `size` 0,5–0,8).
 - **Pas de « cou » fin** entre deux volumes (ex. jambe → pied) : ajouter un volume de raccord.
