@@ -8,9 +8,12 @@
 
 	Ce que fait le script :
 	  - joue « Repos » en boucle ;
-	  - passe à « Marche » dès que le modèle se déplace (vitesse de l'animation adaptée à la vitesse) ;
+	  - passe à « Marche » quand le modèle se déplace, puis à « Course » quand il va vite
+	    (vitesse de l'animation adaptée à la vitesse réelle) ;
 	  - joue une attaque quand un autre script fait :
 	        gardien:SetAttribute("Action", "Morsure")      -- ou "Rugissement", "CoupDeQueue"
+	  - le fait dormir / le réveille :
+	        gardien:SetAttribute("Dort", true)   -- puis false pour le réveiller
 ]]
 
 local RunService = game:GetService("RunService")
@@ -23,10 +26,15 @@ local IDS = {
 	Morsure = "rbxassetid://0",
 	Rugissement = "rbxassetid://0",
 	CoupDeQueue = "rbxassetid://0",
+	Course = "rbxassetid://0",
+	Sommeil = "rbxassetid://0",
 }
 
--- vitesse (studs/s) à laquelle l'animation de marche tourne à vitesse normale
+-- vitesses (studs/s) auxquelles les animations tournent à vitesse normale
 local VITESSE_MARCHE = 4.5
+local VITESSE_COURSE = 11.5
+-- au-dessus de cette vitesse, il court au lieu de marcher
+local SEUIL_COURSE = 8
 
 local controleur = modele:FindFirstChildOfClass("Humanoid") or modele:FindFirstChildOfClass("AnimationController")
 if not controleur then
@@ -51,6 +59,10 @@ pistes.Repos.Looped = true
 pistes.Repos.Priority = Enum.AnimationPriority.Idle
 pistes.Marche.Looped = true
 pistes.Marche.Priority = Enum.AnimationPriority.Movement
+pistes.Course.Looped = true
+pistes.Course.Priority = Enum.AnimationPriority.Movement
+pistes.Sommeil.Looped = true
+pistes.Sommeil.Priority = Enum.AnimationPriority.Action
 for _, nom in ipairs({ "Morsure", "Rugissement", "CoupDeQueue" }) do
 	pistes[nom].Looped = false
 	pistes[nom].Priority = Enum.AnimationPriority.Action
@@ -58,20 +70,43 @@ end
 
 pistes.Repos:Play()
 
--- marche quand le gardien se déplace
+-- joue une seule des deux allures (ou aucune) et arrête l'autre
+local function allure(active, vitesseAnim)
+	for _, nom in ipairs({ "Marche", "Course" }) do
+		local piste = pistes[nom]
+		if nom == active then
+			if not piste.IsPlaying then
+				piste:Play(0.25)
+			end
+			piste:AdjustSpeed(vitesseAnim)
+		elseif piste.IsPlaying then
+			piste:Stop(0.3)
+		end
+	end
+end
+
+-- marche / course selon la vitesse réelle du gardien
 local dernierePosition = modele:GetPivot().Position
 RunService.Heartbeat:Connect(function(dt)
 	local position = modele:GetPivot().Position
 	local deplacement = (position - dernierePosition) * Vector3.new(1, 0, 1)
 	dernierePosition = position
 	local vitesse = deplacement.Magnitude / math.max(dt, 1e-3)
-	if vitesse > 0.5 then
-		if not pistes.Marche.IsPlaying then
-			pistes.Marche:Play(0.25)
-		end
-		pistes.Marche:AdjustSpeed(math.clamp(vitesse / VITESSE_MARCHE, 0.5, 2.5))
-	elseif pistes.Marche.IsPlaying then
-		pistes.Marche:Stop(0.3)
+	if modele:GetAttribute("Dort") or vitesse <= 0.5 then
+		allure(nil, 1)
+	elseif vitesse < SEUIL_COURSE then
+		allure("Marche", math.clamp(vitesse / VITESSE_MARCHE, 0.5, 2))
+	else
+		allure("Course", math.clamp(vitesse / VITESSE_COURSE, 0.7, 2))
+	end
+end)
+
+-- sommeil
+modele:GetAttributeChangedSignal("Dort"):Connect(function()
+	if modele:GetAttribute("Dort") then
+		pistes.Sommeil:Play(1.0) -- se couche en douceur
+	else
+		pistes.Sommeil:Stop(0.8) -- se relève
 	end
 end)
 

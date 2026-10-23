@@ -135,7 +135,7 @@ def patte(m, nom, x, y, avant):
         pieces += m.scales("ee", epaule, 5, (-0.85, 0.85), (-90, 270), couleur_corps, BAS, 0.8, h=0.16, tilt=8)
         pieces += m.scales("eb", biceps, 4, (-0.8, 0.8), (0, 360), couleur_corps, None, 0.75, h=0.15, tilt=8,
                            seed=1)
-        segments = [(milieu, poignet, [1.05, 0.95, 0.72], "rouille")]
+        segments = [(milieu, poignet, [1.1, 1.0, 0.85], "rouille")]
     else:
         haut_, milieu, jarret, poignet = articulations(x, y, avant)
         cuisse = Ellipsoid((x + 0.2 * s, y - 0.2, 5.2), (1.75, 2.3, 2.3))
@@ -143,7 +143,7 @@ def patte(m, nom, x, y, avant):
         pieces += m.scales("ec", cuisse, 6, (-0.85, 0.85), (-90, 270), couleur_corps, Vector((0, 0.5, -1)), 0.85,
                            h=0.16, tilt=8)
         segments = [(milieu, jarret, [1.0, 0.9, 0.75], "sable_fonce"),
-                    (jarret, poignet, [0.75, 0.7, 0.68], "rouille")]
+                    (jarret, poignet, [0.82, 0.78, 0.78], "rouille")]
         # épine du jarret
         pieces.append(m.spike("ergot_jarret", "brun_noir", jarret + Vector((0, 0.5, 0.1)), (0.2 * s, 1, 0.2),
                               Vector((0, 0.3, 1)), 1.2, 0.3, bend=0.3))
@@ -151,40 +151,56 @@ def patte(m, nom, x, y, avant):
     pieces.append(m.ico("articulation", "sable_fonce", milieu, 1.05, jitter=0.08, seed=4))
 
     for i, (p1, p2, rayons, couleur) in enumerate(segments):
-        # avant-bras / jambe : volume effilé couvert d'écailles (zigzags rouille vers le bas)
-        seg = Ellipsoid.between(p1, p2, rayons[0], extra=1.12, up=(0, 1, 0))  # a=0 : +X, 90 : arrière, 270 : avant
-        pieces.append(m.ellipsoid(f"seg{i}", "sable_fonce", seg))
-        pieces.append(m.ico(f"poignet{i}", "sable_fonce", p2, rayons[-1] * 1.05, jitter=0.05, seed=7 + i))
         d = (p2 - p1).normalized()
-        pieces += m.scales(f"es{i}", seg, 5, (-0.85, 0.85), (0, 360), couleur_patte, None, 0.6, h=0.14, tilt=8,
+        # avant-bras / jambe : muscle effilé + volume de cheville épais qui descend jusqu'au pied
+        # (plus de « cou » fin entre la jambe et le pied), le tout couvert d'écailles plaquées
+        seg = Ellipsoid.between(p1, p2, rayons[0], extra=1.12, up=(0, 1, 0))  # a=0 : +X, 90 : arrière, 270 : avant
+        bas = Ellipsoid.between(p1.lerp(p2, 0.45), p2 + d * 0.45, rayons[-1] * 1.1, extra=1.15, up=(0, 1, 0))
+        pieces.append(m.ellipsoid(f"seg{i}", "sable_fonce", seg))
+        pieces.append(m.ellipsoid(f"bas{i}", "sable_fonce", bas))
+        pieces += m.scales(f"es{i}", seg, 5, (-0.85, 0.6), (0, 360), couleur_patte, None, 0.6, h=0.1, tilt=5,
                            seed=10 + i)
-        # épines à l'arrière du segment
+        pieces += m.scales(f"eb{i}", bas, 4, (-0.3, 0.85), (0, 360),
+                           lambda t, a, r: "rouille" if r.random() < 0.55 else "sable_fonce", None, 0.55,
+                           h=0.09, tilt=4, seed=20 + i)
+        # épines noires + frange d'écailles pointues à l'arrière (comme sur la photo)
         for k, t in enumerate((-0.35, 0.3)):
             pieces.append(m.spike(f"epine{i}{k}", "brun_noir", seg.point(t, 90), seg.normal(t, 90) + Vector((0, 0, 0.3)),
                                   d, 1.0 - 0.25 * k, 0.26, bend=0.35))
+        for k, t in enumerate((-0.5, -0.1, 0.3, 0.7)):
+            for j, da in enumerate((-30, 30)):
+                pieces.append(m.spike(f"frange{i}{k}{j}", "sable" if (k + j) % 2 else "rouille",
+                                      seg.point(t, 90 + da), seg.normal(t, 90 + da) * 0.7 + d, d,
+                                      0.85 - 0.08 * k, 0.2, bend=0.25, sides=4))
     # ergots derrière le coude / genou
     for k in range(2):
         pieces.append(m.spike(f"ergot{k}", "brun_noir", milieu + Vector((0, 0.8, 0.4 - 0.8 * k)),
                               (0.3 * s, 1, 0.3), BAS, 1.3 - 0.4 * k, 0.3, bend=0.3))
     cheville = poignet
 
-    # pied + quatre doigts griffus + une griffe arrière
-    pied = Vector((cheville.x, cheville.y - 0.4, 0.55))
-    pied_vol = Ellipsoid(pied, (1.2, 1.5, 0.6))
+    # grand pied : coussinet, 4 doigts à jointures, longues griffes courbes + une griffe arrière
+    pied = Vector((cheville.x, cheville.y - 0.5, 0.62))
+    pied_vol = Ellipsoid(pied, (1.35, 1.7, 0.66))
     pieces.append(m.ellipsoid("pied", "sable_fonce", pied_vol))
-    pieces += m.scales("ep", pied_vol, 3, (-0.7, 0.7), (25, 155), couleur_patte, Vector((0, -1, 0)), 0.6, h=0.12,
-                       tilt=6)
-    for k, ang in enumerate((-42, -14, 14, 42)):
+    pieces += m.scales("ep", pied_vol, 3, (-0.6, 0.75), (25, 155), couleur_patte, Vector((0, -1, 0)), 0.6, h=0.09,
+                       tilt=4)
+    for k, ang in enumerate((-40, -13, 13, 40)):
         r = math.radians(ang)
         d = Vector((math.sin(r), -math.cos(r), 0))
-        bout = pied + d * 1.75 + Vector((0, 0, -0.15))
-        pieces.append(m.tube(f"doigt{k}", "sable", [pied + d * 0.6, pied + d * 1.2 + Vector((0, 0, 0.05)), bout],
-                             [0.42, 0.36, 0.3], sides=5))
-        pieces.append(m.kite(f"ecdoigt{k}", "rouille" if k % 2 else "sable_fonce",
-                             pied + d * 1.15 + Vector((0, 0, 0.3)), (0, 0, 1), d, 0.5, 0.75, 0.15, tilt=6))
-        pieces.append(m.spike(f"griffe{k}", "brun_noir", bout, d, BAS, 0.95, 0.26, bend=0.7))
-    pieces.append(m.spike("griffe_arr", "brun_noir", pied + Vector((0, 1.2, 0.2)), (0, 1, 0.2), BAS, 0.7, 0.22,
-                          bend=0.6))
+        long_ = 1.0 if k in (1, 2) else 0.85  # doigts du milieu plus longs
+        base = pied + d * 0.7
+        jointure = pied + d * (1.15 + 0.35 * long_) + Vector((0, 0, 0.22))
+        bout = pied + d * (1.6 + 0.6 * long_) + Vector((0, 0, -0.18))
+        pieces.append(m.tube(f"doigt{k}", "sable", [base, jointure, bout], [0.46, 0.4, 0.32], sides=6))
+        pieces.append(m.ico(f"jointure{k}", "sable_fonce", jointure, (0.36, 0.36, 0.3), subdiv=1))
+        for j, w in enumerate((0.35, 0.75)):
+            pieces.append(m.kite(f"ecdoigt{k}{j}", "rouille" if (k + j) % 2 else "sable",
+                                 base.lerp(bout, w) + Vector((0, 0, 0.3 if j == 0 else 0.28)), (0, 0, 1), d,
+                                 0.5, 0.65, 0.1, tilt=5))
+        pieces.append(m.spike(f"griffe{k}", "brun_noir", bout, d + Vector((0, 0, 0.12)), BAS, 1.25 * long_, 0.3,
+                              bend=0.5, steps=5))  # se recourbe jusqu'à toucher le sol, sans le traverser
+    pieces.append(m.spike("griffe_arr", "brun_noir", pied + Vector((0, 1.4, 0.25)), (0, 1, 0.2), BAS, 0.9, 0.26,
+                          bend=0.7))
     m.join(f"Patte_{nom}", pieces)
 
 
@@ -250,10 +266,15 @@ def queue(m):
 
 CRANE = Ellipsoid((0, -8.7, 7.0), (1.9, 2.4, 1.7))
 MUSEAU = Ellipsoid((0, -10.9, 6.35), (1.35, 1.65, 0.95))
-MACHOIRE = Ellipsoid((0, -10.2, 5.05), (1.25, 2.1, 0.55), axis=(0, 1, 0.08))
+MACHOIRE = Ellipsoid((0, -10.0, 5.0), (1.3, 2.4, 0.7), axis=(0, 1, 0.08))
 CHARNIERE = (0, -8.3, 5.5)
 LEVRE_HAUT = 5.75  # hauteur où les crocs du haut sortent du museau
 LEVRE_BAS = 5.45   # hauteur où les dents du bas sortent de la mâchoire
+
+
+def bord_haut(y, z, k=0.82):
+    """Demi-largeur de la tête au niveau de la lèvre du haut : museau devant, crâne vers le fond."""
+    return max(bord(MUSEAU, y, z, k), bord(CRANE, y, z, k))
 
 
 def bord(e, y, z, k=0.82):
@@ -264,7 +285,8 @@ def bord(e, y, z, k=0.82):
 
 
 NEZ = Ellipsoid((0, -10.1, 6.85), (1.1, 2.1, 0.75))           # pont du nez entre crâne et museau
-GENCIVE_HAUT = Ellipsoid((0, -10.4, 5.82), (1.12, 1.95, 0.17))
+GENCIVE_HAUT = Ellipsoid((0, -10.2, 5.82), (1.15, 2.4, 0.17))
+LEVRE = 5.9  # hauteur de la lèvre du haut
 JOUE = 1.45  # écart des muscles de la mâchoire
 
 
@@ -315,13 +337,20 @@ def tete(m):
             pieces.append(m.spike(f"joue{k}{s}", "sable" if k % 2 else "sable_fonce",
                                   (s * 1.75, -8.0 + 0.15 * k, 6.4 - 0.4 * k), (s, 0.7, 0.1 - 0.15 * k),
                                   ARRIERE, 1.4 - 0.15 * k, 0.32, bend=0.35))
-        # crocs du haut : plantés dans la gencive, sous le bord du museau
-        for k in range(8):
-            y = -9.2 - 0.4 * k
-            base = (s * bord(MUSEAU, y, LEVRE_HAUT), y, LEVRE_HAUT + 0.08)
-            pieces.append(m.spike(f"croc{k}{s}", "dent", base, (0, -0.1, -1), (0, -1, 0),
-                                  0.5 + rng.uniform(0, 0.2) + 0.25 * (k == 2), 0.15 + 0.04 * (k == 2),
-                                  bend=0.15, sides=4, steps=1))
+        # crocs du haut : rangée serrée en zigzag sur toute la longueur de la gueule, plantés dans la gencive
+        for k in range(12):
+            y = -8.6 - 0.3 * k
+            x = min(bord_haut(y, LEVRE_HAUT), bord(GENCIVE_HAUT, y, LEVRE_HAUT + 0.08, 0.9))
+            base = (s * x, y, LEVRE_HAUT + 0.08)
+            assert GENCIVE_HAUT.inside(base, 0.05), "chaque croc doit partir de la gencive"
+            grand = k % 2 == 0
+            long_ = 0.85 if k == 7 else (0.5 if grand else 0.32) + rng.uniform(0, 0.08)
+            pieces.append(m.spike(f"croc{k}{s}", "dent", base, (0.12 * s, -0.05, -1), (0, -1, 0), long_,
+                                  0.15 if grand else 0.11, bend=0.15, sides=4, steps=1))
+        # lèvre du haut : bord sombre qui dessine la ligne de la gueule
+        pieces.append(m.tube(f"levre{s}", "brun_noir",
+                             [(s * bord_haut(y, LEVRE, 0.97), y, LEVRE) for y in [-8.3 - 0.35 * k for k in range(11)]]
+                             + [(0.28 * s, -12.18, LEVRE + 0.03)], 0.07, sides=5))
         obj, pts, radii = corne(m, s)
         pieces.append(obj)
         dedans = verifie_cornes(pts[1:], radii[1:])  # le 1er point est la racine, enfouie dans le crâne
@@ -331,22 +360,36 @@ def tete(m):
     for k, dx in enumerate((-0.8, 0.0, 0.8)):
         pieces.append(m.spike(f"couronne{k}", "brun_noir", (dx, -7.0, 8.2), (dx * 0.4, 1, 0.7), BAS,
                               1.5 - 0.3 * abs(dx), 0.32, bend=0.25))
+    # petites incisives au bout du museau
+    for x in (-0.22, 0.22):
+        pieces.append(m.spike(f"incisive{x}", "dent", (x, -12.1, LEVRE_HAUT + 0.08), (0, -0.2, -1), (0, -1, 0),
+                              0.3, 0.1, bend=0.1, sides=4, steps=1))
     # intérieur de la gueule (visible quand la mâchoire est ouverte)
-    pieces.append(m.ellipsoid("gueule", "gueule", Ellipsoid((0, -10.2, 5.55), (1.0, 1.9, 0.4))))
+    pieces.append(m.ellipsoid("gueule", "gueule", Ellipsoid((0, -10.0, 5.55), (1.0, 2.3, 0.4))))
     m.join("Tete", pieces)
 
     mach = [m.ellipsoid("machoire", "rouille", MACHOIRE),
-            m.ellipsoid("gencive_bas", "gueule", Ellipsoid((0, -10.3, 5.47), (1.0, 1.85, 0.14)))]
+            m.ellipsoid("menton", "rouille", Ellipsoid((0, -11.6, 4.75), (0.85, 0.75, 0.5)), jitter=0.04),
+            m.ellipsoid("gencive_bas", "gueule", Ellipsoid((0, -10.0, 5.6), (1.05, 2.2, 0.14))),
+            m.ellipsoid("langue", "truffe", Ellipsoid((0, -10.3, 5.66), (0.65, 1.6, 0.16)))]
     # écailles sous le menton et sur les côtés de la mâchoire
     mach += m.scales("em", MACHOIRE, 7, (-0.8, 0.75), (190, 350),
                      lambda t, a, r: "rouille" if r.random() < 0.6 else "sable_fonce", ARRIERE, 0.45, h=0.05,
                      tilt=2, size=0.5, seed=5)
     for s in (1, -1):
-        for k in range(6):
-            y = -9.3 - 0.45 * k
-            mach.append(m.spike(f"dent{k}{s}", "dent", (s * bord(MACHOIRE, y, LEVRE_BAS), y, LEVRE_BAS - 0.08),
-                                (0, -0.1, 1), (0, -1, 0), 0.32 + 0.08 * (k % 2), 0.12, bend=0.1,
-                                sides=4, steps=1))
+        # dents du bas : décalées d'une demi-dent par rapport à celles du haut (elles s'emboîtent)
+        for k in range(10):
+            y = -8.75 - 0.3 * k
+            base = (s * bord(MACHOIRE, y, LEVRE_BAS), y, LEVRE_BAS - 0.08)
+            assert MACHOIRE.inside(base), "chaque dent du bas doit partir de la mâchoire"
+            mach.append(m.spike(f"dent{k}{s}", "dent", base, (0.1 * s, -0.05, 1), (0, -1, 0),
+                                0.42 if k % 2 else 0.28, 0.13 if k % 2 else 0.1, bend=0.1, sides=4, steps=1))
+        # lèvre du bas
+        z = LEVRE_BAS + 0.1
+        avant = MACHOIRE.c.y - MACHOIRE.r.y * math.sqrt(max(0.0, 1 - ((z - MACHOIRE.c.z) / MACHOIRE.r.z) ** 2))
+        mach.append(m.tube(f"levre_bas{s}", "brun_noir",
+                           [(s * bord(MACHOIRE, y, z, 1.0), y, z) for y in [-8.4 - 0.3 * k for k in range(10)]
+                            if y > avant + 0.15] + [(0.25 * s, avant + 0.05, z)], 0.07, sides=5))
         # défenses : sortent du bord de la mâchoire et remontent le long du museau, côté extérieur
         base = (s * bord(MACHOIRE, -11.0, 5.2, 0.7), -11.0, 5.2)  # plantée DANS la mâchoire
         assert MACHOIRE.inside(base), "la défense doit partir de la mâchoire"
@@ -359,10 +402,14 @@ def tete(m):
     # iris lumineux (Material = Neon dans Roblox)
     for nom, s in (("Oeil_G", 1), ("Oeil_D", -1)):
         c, n, _, _, rh, rv = repere_oeil(s)
-        m.ellipsoid(nom, "oeil_ambre", Ellipsoid(c + n * 0.03, (rh, 0.17, rv), axis=n))
+        m.ellipsoid(nom, "oeil_ambre", Ellipsoid(c + n * 0.03, (rh, 0.17, rv), axis=n), subdiv=2)
+        # paupière fermée, cachée dans la tête : l'animation « Sommeil » la fait glisser devant l'oeil
+        m.ellipsoid(f"Paupiere_{nom[-1]}", "sable_fonce", Ellipsoid(c - n * PAUPIERE_SORTIE * 0.75,
+                                                                    (rh * 1.12, 0.14, rv * 1.2), axis=n), subdiv=2)
 
 
 OEIL_Y, OEIL_Z = -9.65, 7.35
+PAUPIERE_SORTIE = 0.47  # déplacement (le long du regard) qui amène la paupière devant l'oeil
 
 
 def repere_oeil(s):

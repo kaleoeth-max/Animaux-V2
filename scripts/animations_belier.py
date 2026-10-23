@@ -6,6 +6,8 @@ Animations (30 images/s, sur place) :
   Morsure       1,2 s           : recul, gueule grande ouverte, attaque vers l'avant, claquement
   Rugissement   2,5 s           : tête levée, gueule ouverte au maximum, tête qui tremble
   CoupDeQueue   1,4 s           : le corps pivote et la queue balaie de côté
+  Course        0,7 s en boucle : galop, grandes foulées (~11,5 studs/s)
+  Sommeil       3,0 s en boucle : couché en sphinx, yeux fermés, queue enroulée, respiration lente
 
 Sorties dans exports/Gardien_Prairie_Belier/ :
   Gardien_Prairie_Belier_rig.fbx        modèle + squelette (à importer dans Roblox)
@@ -72,6 +74,10 @@ def creer_squelette(model):
     os_("Torse", (0, 3.5, 6.4), (0, -4.5, 6.6), "Racine")
     os_("Tete", (0, -6.9, 7.0), (0, -11.5, 6.6), "Torse")
     os_("Machoire", g.CHARNIERE, (0, -11.8, 4.7), "Tete")
+    for cote, sg in (("G", 1), ("D", -1)):
+        c, n = g.repere_oeil(sg)[:2]
+        centre = c - n * g.PAUPIERE_SORTIE * 0.75
+        os_(f"Paupiere_{cote}", centre, centre + n * 0.6, "Tete")
     parent = "Torse"
     for nom, a, b in os_queue():
         os_(nom, a, b, parent)
@@ -124,6 +130,8 @@ def lier_tout(model, rig):
             lier(rig, obj, os_unique="Tete")
         elif n == "Machoire":
             lier(rig, obj, os_unique="Machoire")
+        elif n.startswith("Paupiere_"):
+            lier(rig, obj, os_unique=n)
         elif n == "Queue":
             lier(rig, obj, os_queue(), fondu=1.2)
         elif n.startswith("Patte_"):
@@ -155,6 +163,7 @@ def ik_pattes(pose, cibles=None, pointe=None):
     de repos, pieds bien posés au sol) même quand le corps bouge. Le pied reste à plat.
     cibles : {patte: décalage (dy, dz) de la cheville} ; pointe : {patte: inclinaison des orteils en degrés}."""
     cibles, pointe = cibles or {}, pointe or {}
+    pose["_cibles"] = {}
     rot, dep = pose.get("Torse", ((0, 0, 0), (0, 0, 0)))
     r = Euler(tuple(math.radians(a) for a in rot), "XYZ").to_matrix().to_4x4()
     torse = Matrix.Translation(TORSE_TETE + Vector(dep)) @ r @ Matrix.Translation(-TORSE_TETE)
@@ -163,6 +172,7 @@ def ik_pattes(pose, cibles=None, pointe=None):
         j = g.articulations(x, y, avant)
         dy, dz = cibles.get(nom, (0.0, 0.0))
         cheville = j[-1] + Vector((0, dy, dz))
+        pose["_cibles"][nom] = cheville
         # patte arrière : le dernier segment (jarret -> cheville) garde son orientation, on vise le jarret
         cible = cheville if avant else cheville + (j[2] - j[3])
         a0, a1, a2 = j[0], j[1], j[2]
@@ -296,12 +306,50 @@ def anim_coup_de_queue(u):
     return ik_pattes(pose)
 
 
+def anim_course(u):
+    """Galop : grandes foulées, pattes avant puis arrière presque ensemble, le corps tangue d'avant en arrière."""
+    pose = {
+        "Torse": ((5 * math.sin(TAU * u), 0, 0), (0, 0, -0.2 + 0.3 * math.cos(2 * TAU * u))),
+        "Tete": ((5 - 5 * math.sin(TAU * u + 0.6), 0, 0), (0, 0, 0)),
+        "Machoire": ((4 + 4 * math.sin(2 * TAU * u), 0, 0), (0, 0, 0)),  # halète, gueule ouverte
+    }
+    queue_ondule(pose, u, 4, montee=5)
+    phases = {"AvG": 0.0, "AvD": 0.12, "ArG": 0.5, "ArD": 0.62}
+    cibles, pointe = {}, {}
+    for nom in phases:
+        a = TAU * (u + phases[nom])
+        leve = max(0.0, math.cos(a))
+        cibles[nom] = (-2.1 * math.sin(a), 1.4 * leve ** 1.5)
+        pointe[nom] = 20 * leve ** 2
+    return ik_pattes(pose, cibles, pointe)
+
+
+def anim_sommeil(u):
+    """Couché en sphinx, menton posé, yeux fermés, queue enroulée sur le côté, respiration lente."""
+    souffle = math.sin(TAU * u)
+    pose = {
+        "Torse": ((2 + 1.2 * souffle, 0, 0), (0, 0.2, -2.3 + 0.1 * souffle)),
+        "Tete": ((10 + 1.0 * souffle, 0, -12), (0, 0, 0)),
+        "Machoire": ((-14 + 1.5 * max(0.0, souffle), 0, 0), (0, 0, 0)),  # gueule fermée, petit ronflement
+    }
+    for cote, sg in (("G", 1), ("D", -1)):
+        n = g.repere_oeil(sg)[1]
+        pose[f"Paupiere_{cote}"] = ((0, 0, 0), tuple(n * g.PAUPIERE_SORTIE))
+    for i, courbe in enumerate((16, 22, 28, 34)):
+        pose[f"Queue{i + 1}"] = ((10 if i == 0 else 0, 0, courbe + 2 * souffle * (i == 3)), (0, 0, 0))
+    # pose de sphinx : coudes posés au sol derrière les épaules, avant-bras à plat vers l'avant ;
+    # pattes arrière repliées sous le corps
+    return ik_pattes(pose, {"AvG": (-0.9, 0.0), "AvD": (-0.9, 0.0)})
+
+
 ANIMATIONS = [  # (nom, durée en images, fonction, boucle)
     ("Repos", 60, anim_repos, True),
     ("Marche", 40, anim_marche, True),
     ("Morsure", 36, anim_morsure, False),
     ("Rugissement", 75, anim_rugissement, False),
     ("CoupDeQueue", 42, anim_coup_de_queue, False),
+    ("Course", 22, anim_course, True),
+    ("Sommeil", 90, anim_sommeil, True),
 ]
 
 
