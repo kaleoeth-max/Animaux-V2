@@ -14,7 +14,11 @@ pip install -r requirements.txt   # installe bpy (Blender 5.2 en module Python)
 python3 scripts/gardien_belier.py              # export + images d'aperçu
 python3 scripts/gardien_lievre.py --no-render  # export seulement (plus rapide)
 python3 scripts/animations_belier.py           # squelette + animations du Bélier (+ GIF d'aperçu)
+python3 scripts/verifier_animations.py         # vérifie pieds / sol de chaque animation
 ```
+
+La méthode complète (outils, règles de qualité, animations, import Roblox) est rangée dans le skill
+`.claude/skills/modele-roblox-lowpoly/` : Claude Code le charge automatiquement pour les prochains modèles.
 
 Sorties :
 - `exports/<Nom>/<Nom>.fbx` et `.glb` : à importer dans Roblox Studio (*Avatar > 3D Importer* ou *Import 3D*).
@@ -25,7 +29,7 @@ Sorties :
 
 | Gardien | Rôle | Taille (studs) | Pièces | Triangles |
 |---|---|---|---|---|
-| **Bélier Colosse** (`Gardien_Prairie_Belier`) | tank / boss — bête couverte d'écailles, pattes à frange d'écailles et grands pieds griffus, longue gueule à crocs et mâchoire massive à plaques, cornes annelées | ≈ 11 × 33 × 14 (haut) | 12 | ~21 200 (max ~4 100 par pièce) |
+| **Bélier Colosse** (`Gardien_Prairie_Belier`) ✅ validé (tag `belier-colosse-v1`) | tank / boss — bête couverte d'écailles, pattes à frange d'écailles et grands pieds griffus, longue gueule à crocs et mâchoire massive à plaques, cornes annelées | ≈ 11 × 33 × 14 (haut) | 12 | ~21 200 (max ~4 100 par pièce) |
 | **Grand Lièvre Sentinelle** (`Gardien_Prairie_Lievre`) | vigie, rapide — style « blocs » chibi | ≈ 7 × 6 × 16 (haut) | 10 | ~2200 |
 
 ![Bélier](previews/Gardien_Prairie_Belier_avant.png)
@@ -79,6 +83,7 @@ Les pièces `Paupiere_G` / `Paupiere_D` sont cachées dans la tête : seule l'an
 ## Structure
 
 ```
+.claude/skills/   skill « modele-roblox-lowpoly » (la méthode, pour les prochains modèles)
 lib/lowpoly.py   outils communs (formes low poly, palette de couleurs, export, rendu)
 scripts/         un script par modèle (+ animations_belier.py)
 roblox/          scripts Luau à mettre dans Roblox Studio
