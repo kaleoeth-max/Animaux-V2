@@ -1,8 +1,8 @@
 --[[
-	Animations du Bélier Colosse (gardien de la Prairie, Steal an Egg)
+	Animations d'un gardien (Steal an Egg) : Bélier Colosse, Rat Ravageur… (mêmes noms de clips pour tous)
 
-	Où le mettre : un Script (serveur) directement dans le modèle du Bélier importé
-	(Workspace > Gardien_Prairie_Belier_rig).
+	Où le mettre : un Script (serveur) directement dans le modèle du gardien importé
+	(ex. Workspace > Gardien_Prairie_Belier_rig ou Gardien_Champ_Rat_rig).
 
 	Avant : publier chaque animation depuis l'Animation Editor et coller les ID ci-dessous.
 
@@ -27,9 +27,10 @@ local IDS = {
 }
 
 -- vitesses (studs/s) auxquelles les animations tournent à vitesse normale
+-- Bélier : 4,5 et 11,5 — Rat : 3,9 et 8,5
 local VITESSE_MARCHE = 4.5
 local VITESSE_COURSE = 11.5
--- au-dessus de cette vitesse, il court au lieu de marcher
+-- au-dessus de cette vitesse, il court au lieu de marcher (Bélier : 8 — Rat : 6)
 local SEUIL_COURSE = 8
 
 local controleur = modele:FindFirstChildOfClass("Humanoid") or modele:FindFirstChildOfClass("AnimationController")

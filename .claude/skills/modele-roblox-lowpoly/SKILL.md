@@ -6,8 +6,15 @@ description: Crée ou modifie un modèle 3D low poly pour les jeux Roblox de ce 
 # Modèle 3D low poly pour Roblox (Blender headless)
 
 Méthode mise au point sur le **Bélier Colosse** (gardien de la zone Prairie, validé par l'utilisateur,
-commit `59db35f`). Référence complète : `scripts/gardien_belier.py` (modèle) et
-`scripts/animations_belier.py` (squelette + animations). Pour un nouveau modèle, partir de ces fichiers.
+commit `59db35f`), puis réutilisée pour le **Rat Ravageur** (zone Champ). Références : `scripts/gardien_belier.py`
+et `scripts/gardien_rat.py` (modèles), `lib/animation.py` (squelette + animations, commun à tous) et les petits
+modules `scripts/animations_<modele>.py`. Pour un nouveau quadrupède, copier `gardien_rat.py` (le plus récent)
+et l'adapter.
+
+**Direction artistique commune** (« mutants » de Steal an Egg) : écailles qui se chevauchent avec zigzags rouille
+sur les flancs, crête d'épines noires courbes, gueule à crocs (mâchoire massive à plaques et frange), yeux de
+reptile lumineux, pattes écaillées à ergots. Chaque zone ajoute sa touche (Prairie : cornes de bélier ;
+Champ : épis de blé mutants sur le dos) et sa couleur d'yeux (ambre, rouge…).
 
 ## Mise en route
 
@@ -89,6 +96,9 @@ Paramètres de surface d'un Ellipsoid : `t` ∈ [-1, 1] le long de l'axe, `a` en
 
 Voir [animations.md](animations.md) : squelette, liaison des pièces, poses en axes du monde, cinématique inverse
 des pattes, export Roblox, GIF, vérification (`python3 scripts/verifier_animations.py <module>`).
+Le code est générique (`lib/animation.py`) : un nouveau modèle fournit ses constantes (`PATTES`,
+`articulations()`, `QUEUE`, `CHARNIERE`, `OUVERTURE`, `repere_oeil()`, `PAUPIERE_SORTIE`) et un dictionnaire
+`ANIM` de réglages, puis un module `scripts/animations_<modele>.py` de quelques lignes.
 Jeu d'animations retenu par l'utilisateur pour un gardien : **Marche, Course, Sommeil, CoupDeCroc**.
 
 ## Import dans Roblox (à rappeler à l'utilisateur)
@@ -96,5 +106,6 @@ Jeu d'animations retenu par l'utilisateur pour un gardien : **Marche, Course, So
 1. Importer `<nom>_rig.fbx` (modèle + os) avec l'importeur 3D de Studio.
 2. Animation Editor → `…` → Import → *From FBX Animation* → un fichier `<nom>_<Animation>.fbx` à la fois ;
    cocher la boucle pour les animations en boucle ; publier pour obtenir les ID.
-3. Mettre le script Luau (`roblox/`) dans le modèle et coller les ID. Iris : `Material = Neon`.
+3. Mettre `roblox/Gardien_Animations.server.lua` (commun à tous les gardiens) dans le modèle, coller les ID et
+   régler les vitesses nominales du modèle en haut du script. Iris : `Material = Neon`.
 Ce circuit n'a pas encore été testé de bout en bout dans Studio : le dire, et demander une capture en cas de souci.

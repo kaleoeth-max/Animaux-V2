@@ -1,7 +1,12 @@
 # Animations d'un modèle (squelette + clips pour Roblox)
 
-Référence : `scripts/animations_belier.py`. Pour un nouveau modèle, copier ce fichier et adapter
-`creer_squelette`, `lier_tout` et les fonctions d'animation.
+Code commun : `lib/animation.py`. Un modèle s'y branche avec un module de quelques lignes
+(`scripts/animations_rat.py` : `animation.configurer(gardien_rat)` puis `animation.main()`), en fournissant dans son
+script de modèle les constantes listées en tête de `lib/animation.py` et un dictionnaire `ANIM` :
+os Torse / Tete / bout de mâchoire, pièces liées au torse (ex. `("Corps", "Ble")`), foulées de marche / course,
+pose de sommeil, amplitude du coup de croc. Régler ces valeurs jusqu'à ce que le vérificateur dise `ok` partout
+(ex. pour le rat, tête basse : `croc_tete=2`, `croc_pique=1.5` sinon la mâchoire plonge dans le sol ;
+pattes courtes : `pas_course=1.55` sinon les chevilles n'atteignent plus leur cible).
 
 ## 1. Squelette
 
@@ -16,7 +21,8 @@ Référence : `scripts/animations_belier.py`. Pour un nouveau modèle, copier ce
 - Pièce rigide → un seul os (`lier(rig, obj, os_unique=...)`) : Corps→Torse, Tete/Oeil→Tete, Machoire→Machoire.
 - Pièce qui doit se plier (queue, pattes) → pondération par distance aux segments d'os, avec un fondu entre
   deux os voisins (`lier(rig, obj, segments, fondu=...)`).
-- Toute nouvelle pièce doit être prise en charge dans `lier_tout` (sinon erreur volontaire).
+- Toute nouvelle pièce doit être prise en charge dans `lier_tout` ou listée dans `ANIM["pieces_torse"]`
+  (sinon erreur volontaire).
 - **Astuce paupières** : une pièce « paupière fermée » cachée dans la tête au repos (vérifier qu'aucun sommet ne
   dépasse), qu'un os fait glisser devant l'œil pendant `Sommeil` (Roblox n'anime pas l'échelle des os).
 
@@ -59,7 +65,7 @@ au moins un gros plan rendu sur une image clé (pattes pliées, gueule ouverte) 
 
 ## 7. Script Roblox
 
-`roblox/GardienBelier_Animations.server.lua` sert de modèle : charge les clips par ID, choisit Marche/Course selon
+`roblox/Gardien_Animations.server.lua` (commun) : charge les clips par ID, choisit Marche/Course selon
 la vitesse réelle (`AdjustSpeed` = vitesse / vitesse nominale du clip), attaque via
 `SetAttribute("Action", "CoupDeCroc")`, sommeil via `SetAttribute("Dort", true/false)`.
 Vitesse nominale d'un clip en place = longueur glissée par le pied pendant l'appui / durée de l'appui.

@@ -109,6 +109,14 @@ def couleur_patte(t, a, rng):
     return "sable_fonce" if rng.random() < 0.3 else "sable"
 
 
+# réglages du squelette et des animations (voir lib/animation.py)
+ANIM = dict(
+    torse=((0, 3.5, 6.4), (0, -4.5, 6.6)), tete=((0, -6.9, 7.0), (0, -11.5, 6.6)), machoire_bout=(0, -11.8, 4.7),
+    pieces_torse=("Corps",),
+    pas_marche=1.5, leve_marche=0.9, pas_course=2.1, leve_course=1.4,
+    couche=-2.3, tete_couche=10, avant_couche=(-0.9, 0.0),
+)
+
 PATTES = (("AvG", 2.9, -3.4, True), ("AvD", -2.9, -3.4, True),
           ("ArG", 2.7, 4.4, False), ("ArD", -2.7, 4.4, False))
 
