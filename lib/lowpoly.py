@@ -44,6 +44,12 @@ PALETTE = {
     "herbe_sol": (110, 180, 80),
     "oeil_vert": (150, 255, 90),
     "dent": (250, 248, 240),
+    "caramel": (226, 140, 58),
+    "caramel_fonce": (198, 112, 44),
+    "blanc_doux": (250, 244, 234),
+    "brun_patte": (92, 56, 44),
+    "noir_brillant": (34, 26, 28),
+    "joue_rose": (246, 156, 150),
 }
 
 GRID = 8          # 8 x 8 cases
@@ -65,8 +71,7 @@ def _palette_image(model_name):
     img = bpy.data.images.new(f"{model_name}_palette", size, size, alpha=False)
     px = [0.0] * (size * size * 4)
     for idx, key in enumerate(_PALETTE_KEYS):
-        r, g, b = (_srgb_to_linear(c / 255) for c in PALETTE[key])
-        # images.new crée une image en espace linéaire -> la sauvegarde PNG la reconvertit en sRGB
+        r, g, b = (c / 255 for c in PALETTE[key])  # image 8 bits : valeurs sRGB directes
         cx, cy = idx % GRID, idx // GRID
         for y in range(cy * CELL_PX, (cy + 1) * CELL_PX):
             for x in range(cx * CELL_PX, (cx + 1) * CELL_PX):
@@ -159,6 +164,21 @@ class Model:
             bmesh.ops.bevel(bm, geom=bm.edges[:] + bm.verts[:], offset=bevel,
                             segments=1, affect="EDGES", profile=0.5)
         bmesh.ops.transform(bm, matrix=self._matrix(loc, rot, scale), verts=bm.verts)
+        return self._finish(name, bm, color)
+
+    def beam(self, name, color, p1, p2, half_w, half_d=None, bevel=0.0):
+        """Boîte allongée entre deux points (bras, bâton...) : style « blocs »."""
+        p1, p2 = Vector(p1), Vector(p2)
+        d = p2 - p1
+        bm = bmesh.new()
+        bmesh.ops.create_cube(bm, size=2.0)
+        if bevel:
+            bmesh.ops.bevel(bm, geom=bm.edges[:] + bm.verts[:], offset=bevel / max(half_w, 1e-3),
+                            segments=1, affect="EDGES", profile=0.5)
+        hd = half_d if half_d is not None else half_w
+        mat = (Matrix.Translation((p1 + p2) / 2) @ d.to_track_quat("Z", "Y").to_matrix().to_4x4()
+               @ Matrix.Diagonal((half_w, hd, d.length / 2, 1.0)))
+        bmesh.ops.transform(bm, matrix=mat, verts=bm.verts)
         return self._finish(name, bm, color)
 
     def cone(self, name, color, loc, r1, r2, depth, rot=(0, 0, 0), sides=6, scale=1.0, jitter=0.0):
@@ -290,8 +310,12 @@ class Model:
 
 # --------------------------------------------------------------------------- aperçu
 
-def render_previews(model, views=((35, "avant"), (215, "arriere")), size=900, samples=48):
-    """Rend des images PNG du modèle sur un petit îlot d'herbe (l'îlot n'est pas exporté)."""
+def render_previews(model, views=((35, "avant"), (215, "arriere")), size=900, samples=48, fond="prairie"):
+    """Rend des images PNG du modèle (le sol n'est pas exporté).
+
+    fond : "prairie" (îlot d'herbe, ciel bleu) ou "studio" (gris clair, lumière douce).
+    """
+    studio = fond == "studio"
     scene = bpy.context.scene
     scene.render.engine = "CYCLES"
     scene.cycles.device = "CPU"
@@ -304,8 +328,8 @@ def render_previews(model, views=((35, "avant"), (215, "arriere")), size=900, sa
     world = bpy.data.worlds.new("Ciel")
     world.use_nodes = True
     bg = world.node_tree.nodes["Background"]
-    bg.inputs["Color"].default_value = (0.55, 0.75, 0.95, 1)
-    bg.inputs["Strength"].default_value = 0.9
+    bg.inputs["Color"].default_value = (0.8, 0.8, 0.8, 1) if studio else (0.55, 0.75, 0.95, 1)
+    bg.inputs["Strength"].default_value = 1.1 if studio else 0.9
     scene.world = world
 
     # sol (hors du modèle exporté)
@@ -317,7 +341,7 @@ def render_previews(model, views=((35, "avant"), (215, "arriere")), size=900, sa
     bm.free()
     gmat = bpy.data.materials.new("Sol")
     gmat.use_nodes = True
-    r, g, b = (_srgb_to_linear(c / 255) for c in PALETTE["herbe_sol"])
+    r, g, b = (_srgb_to_linear(c / 255) for c in ((228, 228, 228) if studio else PALETTE["herbe_sol"]))
     gmat.node_tree.nodes["Principled BSDF"].inputs["Base Color"].default_value = (r, g, b, 1)
     gmat.node_tree.nodes["Principled BSDF"].inputs["Roughness"].default_value = 1
     ground_mesh.materials.append(gmat)
@@ -330,11 +354,11 @@ def render_previews(model, views=((35, "avant"), (215, "arriere")), size=900, sa
     hi = Vector((max(p.x for p in pts), max(p.y for p in pts), max(p.z for p in pts)))
     center = (lo + hi) / 2
     radius = (hi - lo).length / 2
-    ground.scale = (radius * 1.4,) * 3
+    ground.scale = (radius * (6 if studio else 1.4),) * 3
 
     sun_data = bpy.data.lights.new("Soleil", "SUN")
-    sun_data.energy = 3.5
-    sun_data.angle = math.radians(8)
+    sun_data.energy = 2.2 if studio else 3.5
+    sun_data.angle = math.radians(25 if studio else 8)
     sun = bpy.data.objects.new("Soleil", sun_data)
     sun.rotation_euler = Euler((math.radians(50), 0, math.radians(-35)))
     scene.collection.objects.link(sun)

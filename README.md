@@ -25,7 +25,7 @@ Sorties :
 | Gardien | Rôle | Taille (studs) | Pièces | Triangles |
 |---|---|---|---|---|
 | **Bélier des Prés** (`Gardien_Prairie_Belier`) | tank, lent et massif | ≈ 9 × 17 × 12,5 (haut) | 9 | ~2100 |
-| **Grand Lièvre Sentinelle** (`Gardien_Prairie_Lievre`) | vigie, rapide | ≈ 6 × 7 × 18 (haut) | 10 | ~1200 |
+| **Grand Lièvre Sentinelle** (`Gardien_Prairie_Lievre`) | vigie, rapide — style « blocs » chibi | ≈ 7 × 6 × 16 (haut) | 10 | ~2200 |
 
 ![Bélier](previews/Gardien_Prairie_Belier_avant.png)
 ![Lièvre](previews/Gardien_Prairie_Lievre_avant.png)
@@ -33,7 +33,7 @@ Sorties :
 ## Conseils d'import dans Roblox
 
 - **Échelle** : 1 unité Blender = 1 stud (un joueur fait ~5 studs). Si la taille ne colle pas, ajuste l'échelle dans l'importeur.
-- **Yeux** : les pièces `Oeil_G` / `Oeil_D` sont séparées → mets `Material = Neon` pour des yeux lumineux.
+- **Yeux** : les pièces `Oeil_G` / `Oeil_D` sont séparées. Bélier : mets `Material = Neon` pour des yeux lumineux. Lièvre : yeux noirs brillants (garder `SmoothPlastic`).
 - **Animation** : les pièces sont nommées et séparées (Tete, Patte_AvG, Oreille_D, Bras_G, Baton…) pour être reliées par des `Motor6D` et animées (oreilles qui bougent, pattes qui marchent).
 - **Orientation** : les modèles regardent vers l'avant (-Y dans Blender) ; tourne le modèle dans Studio si besoin.
 

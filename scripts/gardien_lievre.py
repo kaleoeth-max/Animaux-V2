@@ -1,7 +1,8 @@
-"""Gardien de la Prairie n°2 : le Grand Lièvre Sentinelle.
+"""Gardien de la Prairie n°2 : le Grand Lièvre Sentinelle (style « blocs » chibi).
 
-Lièvre géant dressé sur ses pattes arrière, avec une écharpe de feuilles et un bâton fleuri.
-Rôle : le gardien « vigie », rapide, qui repère les voleurs d'oeufs de loin.
+Style inspiré d'un chiot low poly : formes en blocs biseautés, grosse tête, deux tons
+(caramel + blanc), pattes brun foncé, yeux noirs brillants et petit sourire.
+Il garde son écharpe de feuilles et son bâton fleuri de gardien de la prairie.
 
 Lancer :  python3 scripts/gardien_lievre.py
 """
@@ -13,6 +14,7 @@ sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), ".."
 import lowpoly as lp  # noqa: E402
 
 NAME = "Gardien_Prairie_Lievre"
+B = 0.28  # biseau des blocs (proportion de la demi-taille)
 
 
 def build():
@@ -21,86 +23,99 @@ def build():
 
     # ---------------------------------------------------------------- corps
     corps = [
-        m.ico("ventre", "lievre", (0, 0.3, 4.6), (2.4, 2.1, 3.2), jitter=0.1),
-        m.ico("plastron", "lievre_creme", (0, -1.25, 4.6), (1.75, 1.0, 2.6), jitter=0.06),
-        m.ico("poitrine", "lievre", (0, 0.0, 7.3), (2.0, 1.8, 1.9), jitter=0.08),
-        m.ico("queue", "lievre_creme", (0, 2.5, 2.4), 0.95, jitter=0.12),
+        m.box("tronc", "caramel", (0, 0.3, 3.9), (1.9, 1.7, 2.3), bevel=B),
+        m.box("ventre", "blanc_doux", (0, -1.2, 3.6), (1.3, 0.4, 1.8), bevel=B),
+        m.box("queue", "blanc_doux", (0, 2.15, 1.9), 0.7, rot=(10, 0, 0), bevel=0.25),
     ]
     for s in (1, -1):
         corps += [
-            m.ico(f"cuisse{s}", "lievre", (1.8 * s, 0.5, 2.3), (1.3, 1.9, 1.8), jitter=0.1, seed=s),
-            m.ico(f"pied{s}", "lievre_fonce", (1.45 * s, -1.4, 0.45), (0.85, 2.1, 0.5), seed=s),
-            m.ico(f"orteils{s}", "lievre_creme", (1.45 * s, -3.2, 0.4), (0.6, 0.45, 0.35), subdiv=0),
+            m.box(f"cuisse{s}", "caramel", (1.6 * s, 0.6, 1.8), (0.8, 1.35, 1.25), bevel=B),
+            m.box(f"pied{s}", "brun_patte", (1.3 * s, -0.9, 0.42), (0.7, 1.5, 0.42), bevel=B),
         ]
     m.join("Corps", corps)
 
-    # ---------------------------------------------------------------- tête
+    # ---------------------------------------------------------------- tête (grosse : style chibi)
     tete = [
-        m.ico("crane", "lievre", (0, -0.6, 9.7), (1.75, 1.85, 1.6), jitter=0.06),
-        m.ico("nez", "truffe", (0, -2.6, 9.55), (0.3, 0.22, 0.22), subdiv=0),
-        m.box("dents", "dent", (0, -2.4, 8.7), (0.22, 0.08, 0.25), bevel=0.04),
+        m.box("crane", "caramel", (0, -0.4, 8.25), (2.3, 2.0, 1.95), bevel=B),
+        m.box("museau", "blanc_doux", (0, -2.2, 7.35), (1.15, 0.55, 0.75), bevel=0.25),
+        m.box("liste", "blanc_doux", (0, -2.3, 9.0), (0.42, 0.18, 1.0), bevel=0.2),
+        m.box("truffe", "noir_brillant", (0, -2.82, 7.78), (0.36, 0.13, 0.22), bevel=0.25),
+        m.box("sourire_milieu", "noir_brillant", (0, -2.77, 7.42), (0.04, 0.05, 0.17)),
+        m.box("dents", "dent", (0, -2.72, 6.88), (0.24, 0.07, 0.2), bevel=0.15),
     ]
     for s in (1, -1):
         tete += [
-            m.ico(f"joue{s}", "lievre_creme", (0.6 * s, -2.05, 9.05), (0.7, 0.6, 0.55), subdiv=1),
-            m.box(f"sourcil{s}", "lievre_fonce", (0.85 * s, -2.05, 10.6), (0.5, 0.14, 0.12),
-                  rot=(0, 20 * s, -25 * s), bevel=0.04),
+            m.box(f"sourire{s}", "noir_brillant", (0.22 * s, -2.77, 7.21), (0.22, 0.05, 0.045),
+                  rot=(0, -28 * s, 0)),
+            m.box(f"joue{s}", "joue_rose", (1.6 * s, -2.42, 7.6), (0.38, 0.05, 0.2), bevel=0.2),
         ]
     tete = [m.join("Tete", tete)]
-    for nom, s in (("Oeil_G", 1), ("Oeil_D", -1)):  # Material = Neon dans Roblox
-        tete.append(m.ico(nom, "oeil_vert", (0.95 * s, -1.85, 10.05), (0.32, 0.3, 0.36)))
+    for nom, s in (("Oeil_G", 1), ("Oeil_D", -1)):
+        oeil = [
+            m.box("oeil", "noir_brillant", (0.98 * s, -2.42, 8.3), (0.33, 0.1, 0.42), bevel=0.3),
+            m.box("reflet", "blanc_doux", (0.9 * s + 0.08, -2.53, 8.52), (0.1, 0.03, 0.11)),
+        ]
+        tete.append(m.join(nom, oeil))
 
     # ---------------------------------------------------------------- oreilles (séparées : animables)
-    oreilles = {
-        "G": [(0.6, -0.1, 10.9), (0.85, 0.0, 12.4), (1.05, 0.2, 14.0), (1.15, 0.35, 15.6), (1.2, 0.4, 16.3)],
-        # l'oreille droite est cassée vers l'avant : plus de caractère
-        "D": [(-0.6, -0.1, 10.9), (-0.85, 0.0, 12.4), (-1.1, 0.1, 13.8), (-1.6, -0.6, 14.6), (-2.1, -1.5, 14.9)],
-    }
-    for cote, pts in oreilles.items():
-        ext = m.tube("ext", "lievre", pts, [0.5, 0.7, 0.68, 0.45, 0.0], ring_scale=(1.0, 0.42), up=(0, 1, 0))
-        interieur = [(x, y - 0.22, z) for x, y, z in pts[:-1]]
-        inn = m.tube("int", "rose_oreille", interieur, [0.3, 0.48, 0.45, 0.0],
-                     ring_scale=(1.0, 0.3), up=(0, 1, 0))
-        tete.append(m.join(f"Oreille_{cote}", [ext, inn]))
-    m.scale_about(tete, 1.2, pivot=(0, -0.4, 8.6))
+    # oreille gauche bien droite
+    tete.append(m.join("Oreille_G", [
+        m.box("ext", "caramel", (1.15, -0.3, 12.0), (0.6, 0.28, 2.0), rot=(0, 10, 0), bevel=B),
+        m.box("int", "joue_rose", (1.17, -0.6, 11.9), (0.33, 0.06, 1.55), rot=(0, 10, 0), bevel=0.2),
+    ]))
+    # oreille droite cassée vers l'avant : le petit air de caractère du lièvre
+    pli = (-1.2, -0.3, 12.25)
+    sens = (0, -math.sin(math.radians(60)), math.cos(math.radians(60)))
+    haut = tuple(p + 1.0 * d for p, d in zip(pli, sens))
+    tete.append(m.join("Oreille_D", [
+        m.box("ext", "caramel", (-1.15, -0.3, 11.2), (0.6, 0.28, 1.15), rot=(0, -10, 0), bevel=B),
+        m.box("int", "joue_rose", (-1.17, -0.6, 11.15), (0.33, 0.06, 0.85), rot=(0, -10, 0), bevel=0.2),
+        m.box("pointe", "caramel_fonce", haut, (0.56, 0.27, 1.05), rot=(60, 0, 0), bevel=B),
+    ]))
 
     # ---------------------------------------------------------------- bras
+    epaule, main = {}, {}
     for cote, s in (("G", 1), ("D", -1)):
-        bras = [
-            m.tube("bras", "lievre", [(1.7 * s, -0.2, 7.8), (2.4 * s, -0.9, 6.4), (1.75 * s, -2.2, 6.2)],
-                   [0.62, 0.5, 0.42]),
-            m.ico("patte", "lievre_creme", (1.7 * s, -2.4, 6.2), 0.55),
-        ]
-        m.join(f"Bras_{cote}", bras)
+        epaule[cote] = (1.85 * s, -0.4, 6.0)
+        # bras gauche posé sur le ventre, bras droit tendu vers le bâton
+        main[cote] = (1.5, -1.85, 4.7) if s > 0 else (-2.75, -1.75, 5.0)
+        m.join(f"Bras_{cote}", [
+            m.beam("bras", "caramel", epaule[cote], main[cote], 0.5, bevel=0.12),
+            m.box("patte", "brun_patte", main[cote], (0.5, 0.5, 0.38), bevel=B),
+        ])
 
-    # ---------------------------------------------------------------- bâton fleuri (main droite)
-    bx, by = -1.7, -2.45
-    baton = [m.tube("manche", "bois", [(bx, by, 0.2), (bx + 0.1, by, 4.0), (bx - 0.05, by, 8.5), (bx, by, 12.0)],
-                    [0.26, 0.24, 0.24, 0.22])]
-    baton.append(m.cone("bague", "bois_clair", (bx, by, 6.9), 0.36, 0.36, 0.5, sides=6))
-    baton.append(m.ico("coeur_fleur", "fleur_jaune", (bx, by - 0.1, 12.6), 0.6, subdiv=1))
+    # ---------------------------------------------------------------- bâton fleuri
+    bx, by = -2.95, -1.75
+    baton = [
+        m.beam("manche", "bois", (bx, by, 0.15), (bx, by, 11.0), 0.2, bevel=0.05),
+        m.box("bague", "bois_clair", (bx, by, 7.4), (0.3, 0.3, 0.22), bevel=0.2),
+        m.box("coeur", "fleur_jaune", (bx, by - 0.05, 11.75), (0.45, 0.22, 0.45), rot=(0, 45, 0), bevel=0.25),
+    ]
     for i in range(6):
-        a = 2 * math.pi * i / 6
-        baton.append(m.ico(f"petale{i}", "fleur_blanche",
-                           (bx + 1.0 * math.cos(a), by + 0.15, 12.6 + 1.0 * math.sin(a)),
-                           (0.6, 0.22, 0.6), subdiv=0, jitter=0.03, seed=i))
-    for i, (dx, dz, rz) in enumerate(((0.75, 11.4, -35), (-0.75, 11.1, 35))):
-        baton.append(m.ico(f"feuille{i}", "feuille", (bx + dx, by, dz), (0.7, 0.18, 0.3),
-                           rot=(0, rz, 0), subdiv=0))
+        a = math.radians(i * 60)
+        baton.append(m.box(f"petale{i}", "fleur_blanche",
+                           (bx + 0.95 * math.cos(a), by + 0.1, 11.75 + 0.95 * math.sin(a)),
+                           (0.5, 0.14, 0.3), rot=(0, -i * 60, 0), bevel=0.25))
+    for i, s in enumerate((1, -1)):
+        baton.append(m.box(f"feuille{i}", "feuille", (bx + 0.6 * s, by, 10.3 - 0.4 * i), (0.55, 0.1, 0.22),
+                           rot=(0, -30 * s, 0), bevel=0.25))
     m.join("Baton", baton)
 
     # ---------------------------------------------------------------- écharpe de feuilles
     echarpe = []
-    for i in range(10):
-        a = 2 * math.pi * i / 10
-        x, y = 1.75 * math.sin(a), 0.0 - 1.6 * math.cos(a)
-        echarpe.append(m.ico(f"f{i}", "feuille" if i % 2 else "feuille_fonce", (x, y, 8.45),
-                             (0.75, 0.75, 0.38), rot=(0, 0, -math.degrees(a)), subdiv=0, seed=i))
-    # deux pans qui pendent dans le dos
-    for i, (dx, dz) in enumerate(((0.5, 7.4), (-0.3, 6.5))):
-        echarpe.append(m.ico(f"pan{i}", "feuille_fonce" if i else "feuille", (dx, 1.95, dz),
-                             (0.55, 0.25, 0.85), rot=(10, 0, 15 * (1 - 2 * i)), subdiv=0))
+    n = 10
+    for i in range(n):
+        a = 2 * math.pi * i / n
+        x, y = 2.05 * math.sin(a), 0.3 - 1.85 * math.cos(a)
+        echarpe.append(m.box(f"f{i}", "feuille" if i % 2 else "feuille_fonce", (x, y, 6.3),
+                             (0.68, 0.32, 0.3), rot=(0, 0, -math.degrees(a)), bevel=0.25))
+    # noeud et pan qui pendent sur le côté
+    echarpe.append(m.box("noeud", "feuille_fonce", (1.2, -1.95, 6.0), 0.35, rot=(0, 0, 20), bevel=0.25))
+    echarpe.append(m.box("pan", "feuille", (1.45, -2.0, 5.1), (0.3, 0.12, 0.7), rot=(0, -15, 20), bevel=0.25))
     m.join("Echarpe", echarpe)
+
+    # taille de gardien : ~16 studs de haut
+    m.scale_about(m.parts, 1.15, pivot=(0, 0, 0))
     return m
 
 
@@ -109,5 +124,5 @@ if __name__ == "__main__":
     print("stats", model.stats())
     model.export()
     if "--no-render" not in sys.argv:
-        for p in lp.render_previews(model):
+        for p in lp.render_previews(model, fond="studio"):
             print("preview", p)
