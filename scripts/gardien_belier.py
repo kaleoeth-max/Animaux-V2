@@ -103,6 +103,13 @@ def corps(m):
 
 # ---------------------------------------------------------------------------- pattes
 
+def couleur_patte(t, a, rng):
+    """Bas des pattes : zigzags rouille sur fond sable."""
+    if t > -0.3 + 0.45 * zigzag(a / 120):
+        return "rouille"
+    return "sable_fonce" if rng.random() < 0.3 else "sable"
+
+
 def patte(m, nom, x, y, avant):
     """Patte de bête : avant = épaule / coude replié en arrière / poignet,
     arrière = grosse cuisse / genou vers l'avant / jarret replié en arrière."""
@@ -111,21 +118,22 @@ def patte(m, nom, x, y, avant):
         haut_ = Vector((x, y, 6.3))
         milieu = Vector((x + 0.6 * s, y + 0.9, 3.6))     # coude
         poignet = Vector((x + 0.75 * s, y - 0.2, 1.25))
-        pieces = [
-            m.ellipsoid("epaule", "sable", Ellipsoid((x + 0.1 * s, y, 6.0), (1.6, 1.9, 2.1)), jitter=0.08, seed=1),
-            m.ellipsoid("biceps", "sable_fonce", Ellipsoid.between(haut_, milieu, 1.3, 1.4, extra=1.05),
-                        jitter=0.06, seed=2),
-        ]
+        epaule = Ellipsoid((x + 0.1 * s, y, 6.0), (1.6, 1.9, 2.1))
+        biceps = Ellipsoid.between(haut_, milieu, 1.3, 1.4, extra=1.05, up=(0, 1, 0))
+        pieces = [m.ellipsoid("epaule", "sable_fonce", epaule), m.ellipsoid("biceps", "sable_fonce", biceps)]
+        pieces += m.scales("ee", epaule, 5, (-0.85, 0.85), (-90, 270), couleur_corps, BAS, 0.8, h=0.16, tilt=8)
+        pieces += m.scales("eb", biceps, 4, (-0.8, 0.8), (0, 360), couleur_corps, None, 0.75, h=0.15, tilt=8,
+                           seed=1)
         segments = [(milieu, poignet, [1.05, 0.95, 0.72], "rouille")]
     else:
         haut_ = Vector((x, y, 6.1))
         milieu = Vector((x + 0.5 * s, y - 1.1, 3.9))     # genou
         jarret = Vector((x + 0.7 * s, y + 0.9, 1.9))
         poignet = Vector((x + 0.75 * s, y, 1.0))
-        pieces = [
-            m.ellipsoid("cuisse", "sable", Ellipsoid((x + 0.2 * s, y - 0.2, 5.2), (1.75, 2.3, 2.3)),
-                        jitter=0.08, seed=1),
-        ]
+        cuisse = Ellipsoid((x + 0.2 * s, y - 0.2, 5.2), (1.75, 2.3, 2.3))
+        pieces = [m.ellipsoid("cuisse", "sable_fonce", cuisse)]
+        pieces += m.scales("ec", cuisse, 6, (-0.85, 0.85), (-90, 270), couleur_corps, Vector((0, 0.5, -1)), 0.85,
+                           h=0.16, tilt=8)
         segments = [(milieu, jarret, [1.0, 0.9, 0.75], "sable_fonce"),
                     (jarret, poignet, [0.75, 0.7, 0.68], "rouille")]
         # épine du jarret
@@ -135,17 +143,13 @@ def patte(m, nom, x, y, avant):
     pieces.append(m.ico("articulation", "sable_fonce", milieu, 1.05, jitter=0.08, seed=4))
 
     for i, (p1, p2, rayons, couleur) in enumerate(segments):
-        # avant-bras / jambe : volume sable effilé + grandes plaques rouille (extérieur et devant)
+        # avant-bras / jambe : volume effilé couvert d'écailles (zigzags rouille vers le bas)
         seg = Ellipsoid.between(p1, p2, rayons[0], extra=1.12, up=(0, 1, 0))  # a=0 : +X, 90 : arrière, 270 : avant
-        pieces.append(m.ellipsoid(f"seg{i}", "sable", seg, jitter=0.05, seed=5 + i))
+        pieces.append(m.ellipsoid(f"seg{i}", "sable_fonce", seg))
         pieces.append(m.ico(f"poignet{i}", "sable_fonce", p2, rayons[-1] * 1.05, jitter=0.05, seed=7 + i))
         d = (p2 - p1).normalized()
-        exterieur = 0 if s > 0 else 180
-        for col, a in enumerate((exterieur, 270, (exterieur + 270) / 2 if s > 0 else 225)):
-            for k, t in enumerate((-0.5, 0.0, 0.5)):
-                pieces.append(m.kite(f"plaque{i}{col}{k}", couleur if (k + col) % 2 == 0 else "sable_fonce",
-                                     seg.point(t, a, 0.02), seg.normal(t, a), d,
-                                     rayons[0] * 1.15, (p2 - p1).length * 0.5, 0.26, tilt=12))
+        pieces += m.scales(f"es{i}", seg, 5, (-0.85, 0.85), (0, 360), couleur_patte, None, 0.6, h=0.14, tilt=8,
+                           seed=10 + i)
         # épines à l'arrière du segment
         for k, t in enumerate((-0.35, 0.3)):
             pieces.append(m.spike(f"epine{i}{k}", "brun_noir", seg.point(t, 90), seg.normal(t, 90) + Vector((0, 0, 0.3)),
@@ -158,13 +162,18 @@ def patte(m, nom, x, y, avant):
 
     # pied + quatre doigts griffus + une griffe arrière
     pied = Vector((cheville.x, cheville.y - 0.4, 0.55))
-    pieces.append(m.ellipsoid("pied", "sable_fonce", Ellipsoid(pied, (1.2, 1.5, 0.6))))
+    pied_vol = Ellipsoid(pied, (1.2, 1.5, 0.6))
+    pieces.append(m.ellipsoid("pied", "sable_fonce", pied_vol))
+    pieces += m.scales("ep", pied_vol, 3, (-0.7, 0.7), (25, 155), couleur_patte, Vector((0, -1, 0)), 0.6, h=0.12,
+                       tilt=6)
     for k, ang in enumerate((-42, -14, 14, 42)):
         r = math.radians(ang)
         d = Vector((math.sin(r), -math.cos(r), 0))
         bout = pied + d * 1.75 + Vector((0, 0, -0.15))
         pieces.append(m.tube(f"doigt{k}", "sable", [pied + d * 0.6, pied + d * 1.2 + Vector((0, 0, 0.05)), bout],
                              [0.42, 0.36, 0.3], sides=5))
+        pieces.append(m.kite(f"ecdoigt{k}", "rouille" if k % 2 else "sable_fonce",
+                             pied + d * 1.15 + Vector((0, 0, 0.3)), (0, 0, 1), d, 0.5, 0.75, 0.15, tilt=6))
         pieces.append(m.spike(f"griffe{k}", "brun_noir", bout, d, BAS, 0.95, 0.26, bend=0.7))
     pieces.append(m.spike("griffe_arr", "brun_noir", pied + Vector((0, 1.2, 0.2)), (0, 1, 0.2), BAS, 0.7, 0.22,
                           bend=0.6))
@@ -243,36 +252,64 @@ def bord(e, y, z, k=0.82):
     return e.r.x * math.sqrt(max(0.08, 1 - q * q - h * h)) * k
 
 
+NEZ = Ellipsoid((0, -10.1, 6.85), (1.1, 2.1, 0.75))           # pont du nez entre crâne et museau
+GENCIVE_HAUT = Ellipsoid((0, -10.4, 5.82), (1.12, 1.95, 0.17))
+JOUE = 1.45  # écart des muscles de la mâchoire
+
+
 def tete(m):
     rng = random.Random("tete")
-    pieces = [m.ellipsoid("crane", "sable_fonce", CRANE, jitter=0.05),
-              m.ellipsoid("museau", "sable", MUSEAU, jitter=0.04)]
-    pieces += m.scales("ec", CRANE, 4, (-0.8, 0.7), (32, 148),
-                       lambda t, a, r: "sable_fonce" if r.random() < 0.35 else "sable", ARRIERE, 0.95,
-                       h=0.14, tilt=6)
-    pieces += m.scales("em", MUSEAU, 3, (-0.7, 0.5), (45, 135), lambda t, a, r: "sable", ARRIERE, 0.8,
-                       h=0.1, tilt=4)
-    pieces += [
-        narine(m, 1), narine(m, -1),
-        m.box("orbite_g", "brun_noir", (1.62, -9.55, 7.3), (0.3, 0.6, 0.32), rot=(0, 0, -12), bevel=0.3),
-        m.box("orbite_d", "brun_noir", (-1.62, -9.55, 7.3), (0.3, 0.6, 0.32), rot=(0, 0, 12), bevel=0.3),
-    ]
+    peau = lambda t, a, r: "sable_fonce" if r.random() < 0.3 else "sable"  # noqa: E731
+    pieces = [m.ellipsoid("crane", "sable_fonce", CRANE, jitter=0.04),
+              m.ellipsoid("museau", "sable", MUSEAU, jitter=0.03),
+              m.ellipsoid("nez", "sable", NEZ, jitter=0.03),
+              m.ellipsoid("gencive", "gueule", GENCIVE_HAUT)]
+    # écailles fines qui coulent vers l'arrière
+    pieces += m.scales("ec", CRANE, 7, (-0.85, 0.75), (28, 152), peau, ARRIERE, 0.5, h=0.08, tilt=3,
+                       size=0.8)
+    pieces += m.scales("en", NEZ, 6, (-0.85, 0.6), (40, 140), peau, ARRIERE, 0.42, h=0.07, tilt=3, size=0.8,
+                       seed=1)
+    pieces += m.scales("em", MUSEAU, 5, (-0.75, 0.4), (20, 160), peau, ARRIERE, 0.42, h=0.06, tilt=2, size=0.8,
+                       seed=2)
+    # crête de petites bosses sombres sur l'arête du nez
+    for k in range(5):
+        y = -11.8 + 0.6 * k
+        z = NEZ.c.z + NEZ.r.z * math.sqrt(max(0.0, 1 - ((y - NEZ.c.y) / NEZ.r.y) ** 2))
+        if MUSEAU.inside((0, y, z)):
+            q = (y - MUSEAU.c.y) / MUSEAU.r.y
+            z = max(z, MUSEAU.c.z + MUSEAU.r.z * math.sqrt(max(0.0, 1 - q * q)))
+        pieces.append(m.kite(f"arete{k}", "sable_fonce", (0, y, z - 0.02), (0, -0.3, 1), ARRIERE,
+                             0.4 + 0.05 * k, 0.6, 0.2, tilt=14))
+    pieces.append(narine(m, 1))
+    pieces.append(narine(m, -1))
     for s in (1, -1):
-        # arcade sourcilière en épines
-        for k in range(4):
-            pieces.append(m.spike(f"arcade{k}{s}", "brun_noir",
-                                  (s * (0.6 + 0.3 * k), -10.0 + 0.45 * k, 7.75 + 0.05 * k),
-                                  (0.3 * s, 0.4, 1), ARRIERE, 0.55 + 0.1 * k, 0.2, bend=0.6, sides=4))
+        # naseau en relief autour de la narine
+        pieces.append(m.ico(f"naseau{s}", "sable", (0.45 * s, -12.15, 6.8), (0.32, 0.3, 0.24), subdiv=1))
+        # orbite creusée + arcade sourcilière lourde et froncée (plus basse côté nez = air méchant)
+        pieces.append(m.box(f"orbite{s}", "brun_noir", (1.62 * s, -9.55, 7.3), (0.3, 0.6, 0.32),
+                            rot=(0, 0, -12 * s), bevel=0.3))
+        pieces.append(m.tube(f"arcade{s}", "sable_fonce",
+                             [(0.45 * s, -10.25, 7.5), (1.2 * s, -9.95, 7.78), (1.85 * s, -9.4, 7.88),
+                              (2.05 * s, -8.75, 7.65)], [0.26, 0.34, 0.32, 0.12], sides=6))
+        for k in range(3):  # petites épines au-dessus de l'arcade
+            pieces.append(m.spike(f"arcade_ep{k}{s}", "brun_noir", (s * (1.1 + 0.4 * k), -9.9 + 0.35 * k, 7.95),
+                                  (0.35 * s, 0.4, 1), ARRIERE, 0.5 + 0.12 * k, 0.17, bend=0.6, sides=4))
+        # muscle de la mâchoire (joue) + deux écailles
+        joue = Ellipsoid((JOUE * s, -8.7, 6.05), (0.65, 1.1, 0.85))
+        pieces.append(m.ellipsoid(f"masseter{s}", "sable", joue, jitter=0.04, seed=3))
+        pieces += m.scales(f"ej{s}", joue, 2, (-0.5, 0.5), (-60, 60) if s > 0 else (120, 240), peau, ARRIERE,
+                           0.5, h=0.1, tilt=6, seed=4)
         # collerette d'épines sur les joues
         for k in range(4):
             pieces.append(m.spike(f"joue{k}{s}", "sable" if k % 2 else "sable_fonce",
-                                  (s * 1.55, -8.2 + 0.15 * k, 6.4 - 0.4 * k), (s, 0.7, 0.1 - 0.15 * k),
+                                  (s * 1.75, -8.0 + 0.15 * k, 6.4 - 0.4 * k), (s, 0.7, 0.1 - 0.15 * k),
                                   ARRIERE, 1.4 - 0.15 * k, 0.32, bend=0.35))
-        # crocs du haut : plantés sous le museau, à l'intérieur de son bord
+        # crocs du haut : plantés dans la gencive, sous le bord du museau
         for k in range(8):
             y = -9.2 - 0.4 * k
-            pieces.append(m.spike(f"croc{k}{s}", "dent", (s * bord(MUSEAU, y, LEVRE_HAUT), y, LEVRE_HAUT + 0.08),
-                                  (0, -0.1, -1), (0, -1, 0), 0.5 + rng.uniform(0, 0.2) + 0.2 * (k == 2), 0.15,
+            base = (s * bord(MUSEAU, y, LEVRE_HAUT), y, LEVRE_HAUT + 0.08)
+            pieces.append(m.spike(f"croc{k}{s}", "dent", base, (0, -0.1, -1), (0, -1, 0),
+                                  0.5 + rng.uniform(0, 0.2) + 0.25 * (k == 2), 0.15 + 0.04 * (k == 2),
                                   bend=0.15, sides=4, steps=1))
         obj, pts, radii = corne(m, s)
         pieces.append(obj)
@@ -287,7 +324,12 @@ def tete(m):
     pieces.append(m.ellipsoid("gueule", "gueule", Ellipsoid((0, -10.2, 5.55), (1.0, 1.9, 0.4))))
     m.join("Tete", pieces)
 
-    mach = [m.ellipsoid("machoire", "rouille", MACHOIRE)]
+    mach = [m.ellipsoid("machoire", "rouille", MACHOIRE),
+            m.ellipsoid("gencive_bas", "gueule", Ellipsoid((0, -10.3, 5.47), (1.0, 1.85, 0.14)))]
+    # écailles sous le menton et sur les côtés de la mâchoire
+    mach += m.scales("em", MACHOIRE, 7, (-0.8, 0.75), (190, 350),
+                     lambda t, a, r: "rouille" if r.random() < 0.6 else "sable_fonce", ARRIERE, 0.45, h=0.05,
+                     tilt=2, size=0.5, seed=5)
     for s in (1, -1):
         for k in range(6):
             y = -9.3 - 0.45 * k
@@ -303,8 +345,12 @@ def tete(m):
     # gueule entrouverte : la mâchoire pivote autour de la charnière
     m.rotate_about([machoire], 14, "X", CHARNIERE)
 
-    for nom, s in (("Oeil_G", 1), ("Oeil_D", -1)):  # Material = Neon dans Roblox
-        m.ico(nom, "oeil_glace", (1.86 * s, -9.7, 7.32), (0.2, 0.36, 0.2), rot=(0, 0, -12 * s))
+    # yeux (Material = Neon dans Roblox) avec pupille fendue de reptile
+    for nom, s in (("Oeil_G", 1), ("Oeil_D", -1)):
+        m.join(nom, [
+            m.ico("globe", "oeil_glace", (1.86 * s, -9.7, 7.32), (0.2, 0.36, 0.22), rot=(0, 0, -12 * s)),
+            m.box("pupille", "brun_noir", (2.02 * s, -9.75, 7.32), (0.05, 0.07, 0.18), rot=(0, 0, -12 * s)),
+        ])
 
 
 def narine(m, s):
