@@ -6,7 +6,7 @@ description: Crée ou modifie un modèle 3D low poly pour les jeux Roblox de ce 
 # Modèle 3D low poly pour Roblox (Blender headless)
 
 Méthode mise au point sur le **Bélier Colosse** (gardien de la zone Prairie, validé par l'utilisateur,
-tag git `belier-colosse-v1`). Référence complète : `scripts/gardien_belier.py` (modèle) et
+commit `59db35f`). Référence complète : `scripts/gardien_belier.py` (modèle) et
 `scripts/animations_belier.py` (squelette + animations). Pour un nouveau modèle, partir de ces fichiers.
 
 ## Mise en route

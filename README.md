@@ -29,7 +29,7 @@ Sorties :
 
 | Gardien | Rôle | Taille (studs) | Pièces | Triangles |
 |---|---|---|---|---|
-| **Bélier Colosse** (`Gardien_Prairie_Belier`) ✅ validé (tag `belier-colosse-v1`) | tank / boss — bête couverte d'écailles, pattes à frange d'écailles et grands pieds griffus, longue gueule à crocs et mâchoire massive à plaques, cornes annelées | ≈ 11 × 33 × 14 (haut) | 12 | ~21 200 (max ~4 100 par pièce) |
+| **Bélier Colosse** (`Gardien_Prairie_Belier`) ✅ validé (commit `59db35f`) | tank / boss — bête couverte d'écailles, pattes à frange d'écailles et grands pieds griffus, longue gueule à crocs et mâchoire massive à plaques, cornes annelées | ≈ 11 × 33 × 14 (haut) | 12 | ~21 200 (max ~4 100 par pièce) |
 | **Grand Lièvre Sentinelle** (`Gardien_Prairie_Lievre`) | vigie, rapide — style « blocs » chibi | ≈ 7 × 6 × 16 (haut) | 10 | ~2200 |
 
 ![Bélier](previews/Gardien_Prairie_Belier_avant.png)
