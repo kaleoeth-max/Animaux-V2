@@ -285,9 +285,9 @@ def tete(m):
     for s in (1, -1):
         # naseau en relief autour de la narine
         pieces.append(m.ico(f"naseau{s}", "sable", (0.45 * s, -12.15, 6.8), (0.32, 0.3, 0.24), subdiv=1))
-        # orbite creusée + arcade sourcilière lourde et froncée (plus basse côté nez = air méchant)
-        pieces.append(m.box(f"orbite{s}", "brun_noir", (1.62 * s, -9.55, 7.3), (0.3, 0.6, 0.32),
-                            rot=(0, 0, -12 * s), bevel=0.3))
+        # oeil : orbite, paupières, pupille fendue, reflet (l'iris lumineux est une pièce à part)
+        pieces += oeil(m, s)
+        # arcade sourcilière lourde et froncée (plus basse côté nez = air méchant)
         pieces.append(m.tube(f"arcade{s}", "sable_fonce",
                              [(0.45 * s, -10.25, 7.5), (1.2 * s, -9.95, 7.78), (1.85 * s, -9.4, 7.88),
                               (2.05 * s, -8.75, 7.65)], [0.26, 0.34, 0.32, 0.12], sides=6))
@@ -345,12 +345,45 @@ def tete(m):
     # gueule entrouverte : la mâchoire pivote autour de la charnière
     m.rotate_about([machoire], 14, "X", CHARNIERE)
 
-    # yeux (Material = Neon dans Roblox) avec pupille fendue de reptile
+    # iris lumineux (Material = Neon dans Roblox)
     for nom, s in (("Oeil_G", 1), ("Oeil_D", -1)):
-        m.join(nom, [
-            m.ico("globe", "oeil_glace", (1.86 * s, -9.7, 7.32), (0.2, 0.36, 0.22), rot=(0, 0, -12 * s)),
-            m.box("pupille", "brun_noir", (2.02 * s, -9.75, 7.32), (0.05, 0.07, 0.18), rot=(0, 0, -12 * s)),
-        ])
+        c, n, _, _, rh, rv = repere_oeil(s)
+        m.ellipsoid(nom, "oeil_ambre", Ellipsoid(c + n * 0.03, (rh, 0.17, rv), axis=n))
+
+
+OEIL_Y, OEIL_Z = -9.65, 7.35
+
+
+def repere_oeil(s):
+    """Centre de l'oeil posé sur le crâne + repère (n : regard, x : horizontal, z : haut) + demi-tailles."""
+    x = bord(CRANE, OEIL_Y, OEIL_Z, 1.0)
+    c = Vector((x * s, OEIL_Y, OEIL_Z))
+    n = Vector((0.85 * s, -0.5, 0.15)).normalized()  # regarde sur le côté et vers l'avant
+    hx = n.cross(Vector((0, 0, 1))).normalized()
+    return c, n, hx, hx.cross(n), 0.48, 0.31
+
+
+def oeil(m, s):
+    c, n, hx, hz, rh, rv = repere_oeil(s)
+    avant = 1 if hx.y < 0 else -1  # signe de hx qui pointe vers le museau
+    pieces = [m.ellipsoid(f"orbite{s}", "brun_noir", Ellipsoid(c - n * 0.05, (rh * 1.25, 0.18, rv * 1.35), axis=n))]
+    # pupille fendue verticale + petit reflet
+    pieces.append(m.beam(f"pupille{s}", "brun_noir", c + n * 0.2 - hz * rv * 0.85, c + n * 0.2 + hz * rv * 0.85,
+                         0.075, 0.03))
+    pieces.append(m.ico(f"reflet{s}", "blanc_doux", c + n * 0.2 + hz * rv * 0.4 + hx * avant * rh * 0.35, 0.05,
+                        subdiv=0))
+    # paupière du haut épaisse et inclinée (plus basse côté museau = regard furieux), paupière du bas fine
+    haut, bas = [], []
+    for i in range(9):
+        phi = math.pi * i / 8
+        cx = math.cos(phi)
+        haut.append(c + n * 0.16 + hx * rh * 1.08 * cx + hz * (rv * 0.62 * math.sin(phi) + 0.05 - 0.2 * avant * cx))
+        bas.append(c + n * 0.08 + hx * rh * 1.05 * cx - hz * rv * 1.05 * math.sin(phi))
+    pieces.append(m.tube(f"paupiere_h{s}", "sable_fonce", haut, [0.08, 0.14, 0.17, 0.18, 0.18, 0.18, 0.17, 0.14, 0.08],
+                         sides=6, ring_scale=(1.0, 0.75)))
+    pieces.append(m.tube(f"paupiere_b{s}", "sable", bas, [0.04, 0.06, 0.07, 0.07, 0.07, 0.07, 0.07, 0.06, 0.04],
+                         sides=5))
+    return pieces
 
 
 def narine(m, s):
