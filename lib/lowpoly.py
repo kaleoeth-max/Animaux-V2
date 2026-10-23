@@ -450,6 +450,8 @@ class Model:
 def render_previews(model, views=((35, "avant"), (215, "arriere")), size=900, samples=48, fond="prairie"):
     """Rend des images PNG du modèle (le sol n'est pas exporté).
 
+    views : (angle, nom) ou (angle, nom, zoom, cible, hauteur) ; angle 0 = de face, 90 = côté gauche.
+
     fond : "prairie" (îlot d'herbe, ciel bleu) ou "studio" (gris clair, lumière douce).
     """
     studio = fond == "studio"
@@ -514,7 +516,8 @@ def render_previews(model, views=((35, "avant"), (215, "arriere")), size=900, sa
         zoom = view[2] if len(view) > 2 else 1.0
         cible = Vector(view[3]) if len(view) > 3 else center
         a = math.radians(angle - 90)  # 0° = face (-Y)
-        d, hauteur = dist / zoom, radius * 0.9 / zoom
+        d = dist / zoom
+        hauteur = view[4] if len(view) > 4 else radius * 0.9 / zoom
         cam.location = cible + Vector((math.cos(a) * d, math.sin(a) * d, hauteur))
         direction = cible - cam.location
         cam.rotation_euler = direction.to_track_quat("-Z", "Y").to_euler()

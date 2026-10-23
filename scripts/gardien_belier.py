@@ -104,22 +104,57 @@ def corps(m):
 # ---------------------------------------------------------------------------- pattes
 
 def patte(m, nom, x, y, avant):
+    """Patte de bête : avant = épaule / coude replié en arrière / poignet,
+    arrière = grosse cuisse / genou vers l'avant / jarret replié en arrière."""
     s = 1 if x > 0 else -1
-    epaule = Vector((x, y, 5.9))
-    coude = Vector((x + 0.6 * s, y + (0.5 if avant else 1.0), 3.0))
-    cheville = Vector((x + 0.7 * s, y - 0.5, 1.0))
-    haut = Ellipsoid.between(epaule, coude, 1.15, 1.25)
-    bas = Ellipsoid.between(coude, cheville, 0.9)
-    epaule_vol = Ellipsoid((x, y, 6.0), (1.5, 1.8, 2.0))
-    # pattes lisses (sans écailles) : simples volumes facettés, sable en haut, rouille en bas
-    pieces = [m.ellipsoid("epaule", "sable", epaule_vol, jitter=0.08, seed=1),
-              m.ellipsoid("haut", "sable_fonce", haut, jitter=0.06, seed=2),
-              m.ellipsoid("bas", "rouille", bas, jitter=0.05, seed=3)]
+    if avant:
+        haut_ = Vector((x, y, 6.3))
+        milieu = Vector((x + 0.6 * s, y + 0.9, 3.6))     # coude
+        poignet = Vector((x + 0.75 * s, y - 0.2, 1.25))
+        pieces = [
+            m.ellipsoid("epaule", "sable", Ellipsoid((x + 0.1 * s, y, 6.0), (1.6, 1.9, 2.1)), jitter=0.08, seed=1),
+            m.ellipsoid("biceps", "sable_fonce", Ellipsoid.between(haut_, milieu, 1.3, 1.4, extra=1.05),
+                        jitter=0.06, seed=2),
+        ]
+        segments = [(milieu, poignet, [1.05, 0.95, 0.72], "rouille")]
+    else:
+        haut_ = Vector((x, y, 6.1))
+        milieu = Vector((x + 0.5 * s, y - 1.1, 3.9))     # genou
+        jarret = Vector((x + 0.7 * s, y + 0.9, 1.9))
+        poignet = Vector((x + 0.75 * s, y, 1.0))
+        pieces = [
+            m.ellipsoid("cuisse", "sable", Ellipsoid((x + 0.2 * s, y - 0.2, 5.2), (1.75, 2.3, 2.3)),
+                        jitter=0.08, seed=1),
+        ]
+        segments = [(milieu, jarret, [1.0, 0.9, 0.75], "sable_fonce"),
+                    (jarret, poignet, [0.75, 0.7, 0.68], "rouille")]
+        # épine du jarret
+        pieces.append(m.spike("ergot_jarret", "brun_noir", jarret + Vector((0, 0.5, 0.1)), (0.2 * s, 1, 0.2),
+                              Vector((0, 0.3, 1)), 1.2, 0.3, bend=0.3))
+    # articulation bosselée (coude / genou)
+    pieces.append(m.ico("articulation", "sable_fonce", milieu, 1.05, jitter=0.08, seed=4))
 
-    # ergots derrière le coude
+    for i, (p1, p2, rayons, couleur) in enumerate(segments):
+        # avant-bras / jambe : volume sable effilé + grandes plaques rouille (extérieur et devant)
+        seg = Ellipsoid.between(p1, p2, rayons[0], extra=1.12, up=(0, 1, 0))  # a=0 : +X, 90 : arrière, 270 : avant
+        pieces.append(m.ellipsoid(f"seg{i}", "sable", seg, jitter=0.05, seed=5 + i))
+        pieces.append(m.ico(f"poignet{i}", "sable_fonce", p2, rayons[-1] * 1.05, jitter=0.05, seed=7 + i))
+        d = (p2 - p1).normalized()
+        exterieur = 0 if s > 0 else 180
+        for col, a in enumerate((exterieur, 270, (exterieur + 270) / 2 if s > 0 else 225)):
+            for k, t in enumerate((-0.5, 0.0, 0.5)):
+                pieces.append(m.kite(f"plaque{i}{col}{k}", couleur if (k + col) % 2 == 0 else "sable_fonce",
+                                     seg.point(t, a, 0.02), seg.normal(t, a), d,
+                                     rayons[0] * 1.15, (p2 - p1).length * 0.5, 0.26, tilt=12))
+        # épines à l'arrière du segment
+        for k, t in enumerate((-0.35, 0.3)):
+            pieces.append(m.spike(f"epine{i}{k}", "brun_noir", seg.point(t, 90), seg.normal(t, 90) + Vector((0, 0, 0.3)),
+                                  d, 1.0 - 0.25 * k, 0.26, bend=0.35))
+    # ergots derrière le coude / genou
     for k in range(2):
-        pieces.append(m.spike(f"ergot{k}", "brun_noir", coude + Vector((0, 0.7, 0.4 - 0.8 * k)),
+        pieces.append(m.spike(f"ergot{k}", "brun_noir", milieu + Vector((0, 0.8, 0.4 - 0.8 * k)),
                               (0.3 * s, 1, 0.3), BAS, 1.3 - 0.4 * k, 0.3, bend=0.3))
+    cheville = poignet
 
     # pied + quatre doigts griffus + une griffe arrière
     pied = Vector((cheville.x, cheville.y - 0.4, 0.55))
@@ -218,8 +253,7 @@ def tete(m):
     pieces += m.scales("em", MUSEAU, 3, (-0.7, 0.5), (45, 135), lambda t, a, r: "sable", ARRIERE, 0.8,
                        h=0.1, tilt=4)
     pieces += [
-        m.box("narine_g", "brun_noir", (0.42, -12.45, 6.75), (0.17, 0.12, 0.12), rot=(0, 0, 20), bevel=0.3),
-        m.box("narine_d", "brun_noir", (-0.42, -12.45, 6.75), (0.17, 0.12, 0.12), rot=(0, 0, -20), bevel=0.3),
+        narine(m, 1), narine(m, -1),
         m.box("orbite_g", "brun_noir", (1.62, -9.55, 7.3), (0.3, 0.6, 0.32), rot=(0, 0, -12), bevel=0.3),
         m.box("orbite_d", "brun_noir", (-1.62, -9.55, 7.3), (0.3, 0.6, 0.32), rot=(0, 0, 12), bevel=0.3),
     ]
@@ -273,6 +307,15 @@ def tete(m):
         m.ico(nom, "oeil_glace", (1.86 * s, -9.7, 7.32), (0.2, 0.36, 0.2), rot=(0, 0, -12 * s))
 
 
+def narine(m, s):
+    """Narine posée sur le bout du museau (à moitié enfoncée dans la surface, pas devant)."""
+    x, z = 0.42 * s, 6.75
+    k = 1 - (x / MUSEAU.r.x) ** 2 - ((z - MUSEAU.c.z) / MUSEAU.r.z) ** 2
+    y = MUSEAU.c.y - MUSEAU.r.y * math.sqrt(k) + 0.06  # surface avant du museau, légèrement dedans
+    assert MUSEAU.inside((x, y, z)), "la narine doit être sur le museau"
+    return m.box(f"narine{s}", "brun_noir", (x, y, z), (0.17, 0.1, 0.11), rot=(0, 0, 25 * s), bevel=0.3)
+
+
 def corne(m, s):
     """Corne annelée de bélier : part du haut du crâne, passe derrière l'oeil, descend et revient
     vers l'avant le long de la joue. Elle reste autour de la tête, sans toucher le cou ni le corps."""
@@ -308,6 +351,10 @@ if __name__ == "__main__":
         print("   ", nom, t)
     model.export()
     if "--no-render" not in sys.argv:
-        vues = ((35, "avant"), (215, "arriere"), (28, "tete", 2.4, (0, -9.5, 6.8)))
+        tete_c = (0, -10.0, 6.3)
+        vues = ((35, "avant"), (215, "arriere"), (28, "tete", 2.4, (0, -9.5, 6.8)),
+                (0, "tete_face", 3.0, tete_c, 0.4),         # bien en face, à hauteur de la gueule
+                (90, "tete_profil", 2.8, tete_c, 0.6),      # de côté
+                (125, "tete_arriere", 2.6, (0, -9.3, 6.6), 2.2))  # de trois-quarts arrière
         for p in lp.render_previews(model, views=vues):
             print("preview", p)
