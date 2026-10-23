@@ -24,7 +24,7 @@ Sorties :
 
 | Gardien | Rôle | Taille (studs) | Pièces | Triangles |
 |---|---|---|---|---|
-| **Bélier Colosse** (`Gardien_Prairie_Belier`) | tank / boss — bête blindée à épines, cornes géantes | ≈ 11 × 28 × 11 (haut) | 10 | ~2900 |
+| **Bélier Colosse** (`Gardien_Prairie_Belier`) | tank / boss — bête blindée à épines, cornes géantes | ≈ 9,5 × 27,5 × 11 (haut) | 10 | ~2900 |
 | **Grand Lièvre Sentinelle** (`Gardien_Prairie_Lievre`) | vigie, rapide — style « blocs » chibi | ≈ 7 × 6 × 16 (haut) | 10 | ~2200 |
 
 ![Bélier](previews/Gardien_Prairie_Belier_avant.png)
