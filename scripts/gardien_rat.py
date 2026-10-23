@@ -1,7 +1,7 @@
 """Gardien du Champ : le Rat Ravageur (rat mutant, même direction artistique que le Bélier Colosse).
 
-Rat géant au dos voûté couvert d'écailles (pelage gris-brun, zigzags rouille sur les flancs), crête d'épines
-noires, épis de blé mutants qui lui poussent sur le dos, long museau pointu à truffe rose et moustaches,
+Rat géant au dos voûté couvert d'écailles anthracite (zigzags vert toxique sur les flancs), crête d'épines
+couleur os, épis de blé mutants qui lui poussent sur le dos, long museau pointu à truffe rose et moustaches,
 énormes incisives jaunes, gueule à crocs avec mâchoire à plaques, grandes oreilles rondes, yeux rouges,
 mains griffues à l'avant, longs pieds à cinq doigts à l'arrière, longue queue nue annelée et épineuse.
 Rôle : le gardien rapide et vicieux du champ.
@@ -41,18 +41,18 @@ ANIM = dict(
 
 
 def couleur_corps(t, a, rng):
-    """Pelage gris-brun sur le dessus, flancs et ventre en zigzags rouille (comme le Bélier)."""
+    """Écailles anthracite sur le dessus, flancs en zigzags vert toxique (sa palette à lui, pas celle du Bélier)."""
     lat = math.sin(math.radians(a))
     decale = 0.0 if math.cos(math.radians(a)) >= 0 else 0.37
     if lat < -0.1 + 0.45 * zigzag(t * 2.2 + decale):
-        return "rouille"
-    return "brun_rat_fonce" if rng.random() < 0.3 else "brun_rat"
+        return "vert_toxique"
+    return "anthracite_fonce" if rng.random() < 0.3 else "anthracite"
 
 
 def couleur_patte(t, a, rng):
     if t > -0.3 + 0.45 * zigzag(a / 120):
-        return "rouille"
-    return "brun_rat_fonce" if rng.random() < 0.3 else "brun_rat"
+        return "vert_toxique"
+    return "anthracite_fonce" if rng.random() < 0.3 else "anthracite"
 
 
 def dessus(x, y):
@@ -88,15 +88,15 @@ def build():
 # ---------------------------------------------------------------------------- corps
 
 def corps(m):
-    pieces = [m.ellipsoid(f"vol{i}", "brun_rat_fonce", e, jitter=0.08, seed=i) for i, e in enumerate(TORSE)]
-    pieces.append(m.ellipsoid("ventre", "sable", VENTRE))
+    pieces = [m.ellipsoid(f"vol{i}", "anthracite_fonce", e, jitter=0.08, seed=i) for i, e in enumerate(TORSE)]
+    pieces.append(m.ellipsoid("ventre", "gris_clair", VENTRE))
     zones = ((COU, 5, (-0.85, 0.6), 0.9), (POITRAIL, 6, (-0.9, 0.55), 1.0),
              (DOS, 7, (-0.75, 0.8), 1.15), (HANCHES, 6, (-0.45, 0.95), 1.1))
     for i, (e, rangs, plage, pas) in enumerate(zones):
         pieces += m.scales(f"ec{i}_", e, rangs, plage, (-90, 270), couleur_corps, ARRIERE, pas, h=0.15,
                            tilt=8, seed=i)
     pieces += m.scales("ev_", VENTRE, 7, (-0.8, 0.8), (225, 315),
-                       lambda t, a, r: "sable" if r.random() < 0.7 else "sable_fonce", ARRIERE, 0.75, h=0.12, tilt=6)
+                       lambda t, a, r: "gris_clair" if r.random() < 0.7 else "anthracite", ARRIERE, 0.75, h=0.12, tilt=6)
 
     # crête d'épines (vertèbres mutantes), plus hautes sur le dos voûté
     rng = random.Random("crete")
@@ -107,14 +107,14 @@ def corps(m):
         z = dessus(0, y)
         if z is None:
             continue
-        pieces.append(m.spike(f"epine{i}", "brun_noir", (0, y, z - 0.2), (0, -0.1, 1), ARRIERE, L,
+        pieces.append(m.spike(f"epine{i}", "os", (0, y, z - 0.2), (0, -0.1, 1), ARRIERE, L,
                               0.42 + 0.1 * L / 3, bend=0.55))
         for s in (1, -1):
             if i % 2:
                 continue
             zc = dessus(1.3, y + 0.3)
             if zc is not None:
-                pieces.append(m.spike(f"epine{i}_{s}", "brun_noir", (1.3 * s, y + 0.3, zc - 0.15),
+                pieces.append(m.spike(f"epine{i}_{s}", "os", (1.3 * s, y + 0.3, zc - 0.15),
                                       (0.6 * s, 0, 1), ARRIERE, L * 0.5 * rng.uniform(0.8, 1.2), 0.3, bend=0.5))
     m.join("Corps", pieces)
 
@@ -174,36 +174,36 @@ def patte(m, nom, x, y, avant):
         haut_, milieu, poignet = articulations(x, y, avant)
         epaule = Ellipsoid((x + 0.1 * s, y, 5.3), (1.4, 1.7, 1.8))
         biceps = Ellipsoid.between(haut_, milieu, 1.0, 1.1, extra=1.05, up=(0, 1, 0))
-        pieces = [m.ellipsoid("epaule", "brun_rat_fonce", epaule), m.ellipsoid("biceps", "brun_rat_fonce", biceps)]
+        pieces = [m.ellipsoid("epaule", "anthracite_fonce", epaule), m.ellipsoid("biceps", "anthracite_fonce", biceps)]
         pieces += m.scales("ee", epaule, 5, (-0.85, 0.85), (-90, 270), couleur_corps, BAS, 0.7, h=0.14, tilt=7)
         pieces += m.scales("eb", biceps, 4, (-0.8, 0.8), (0, 360), couleur_corps, None, 0.6, h=0.12, tilt=7, seed=1)
         segments = [(milieu, poignet, [0.85, 0.75, 0.65])]
     else:
         haut_, milieu, jarret, poignet = articulations(x, y, avant)
         cuisse = Ellipsoid((x + 0.2 * s, y - 0.2, 5.0), (1.9, 2.5, 2.4))
-        pieces = [m.ellipsoid("cuisse", "brun_rat_fonce", cuisse)]
+        pieces = [m.ellipsoid("cuisse", "anthracite_fonce", cuisse)]
         pieces += m.scales("ec", cuisse, 6, (-0.85, 0.85), (-90, 270), couleur_corps, Vector((0, 0.5, -1)), 0.85,
                            h=0.15, tilt=7)
         segments = [(milieu, jarret, [0.9, 0.8, 0.65]), (jarret, poignet, [0.7, 0.65, 0.62])]
-        pieces.append(m.spike("ergot_jarret", "brun_noir", jarret + Vector((0, 0.45, 0.1)), (0.2 * s, 1, 0.2),
+        pieces.append(m.spike("ergot_jarret", "os", jarret + Vector((0, 0.45, 0.1)), (0.2 * s, 1, 0.2),
                               Vector((0, 0.3, 1)), 1.0, 0.26, bend=0.3))
-    pieces.append(m.ico("articulation", "brun_rat_fonce", milieu, 0.85, jitter=0.07, seed=4))
+    pieces.append(m.ico("articulation", "anthracite_fonce", milieu, 0.85, jitter=0.07, seed=4))
 
     for i, (p1, p2, rayons) in enumerate(segments):
         d = (p2 - p1).normalized()
         seg = Ellipsoid.between(p1, p2, rayons[0], extra=1.12, up=(0, 1, 0))
         bas = Ellipsoid.between(p1.lerp(p2, 0.45), p2 + d * 0.4, rayons[-1] * 1.1, extra=1.15, up=(0, 1, 0))
-        pieces.append(m.ellipsoid(f"seg{i}", "brun_rat_fonce", seg))
-        pieces.append(m.ellipsoid(f"bas{i}", "brun_rat_fonce", bas))
+        pieces.append(m.ellipsoid(f"seg{i}", "anthracite_fonce", seg))
+        pieces.append(m.ellipsoid(f"bas{i}", "anthracite_fonce", bas))
         pieces += m.scales(f"es{i}", seg, 5, (-0.85, 0.6), (0, 360), couleur_patte, None, 0.5, h=0.09, tilt=5,
                            seed=10 + i)
         pieces += m.scales(f"eb{i}", bas, 4, (-0.3, 0.85), (0, 360),
-                           lambda t, a, r: "rouille" if r.random() < 0.5 else "brun_rat_fonce", None, 0.45,
+                           lambda t, a, r: "vert_toxique" if r.random() < 0.5 else "anthracite_fonce", None, 0.45,
                            h=0.08, tilt=4, seed=20 + i)
-        pieces.append(m.spike(f"epine{i}", "brun_noir", seg.point(-0.2, 90), seg.normal(-0.2, 90) + Vector((0, 0, 0.3)),
+        pieces.append(m.spike(f"epine{i}", "os", seg.point(-0.2, 90), seg.normal(-0.2, 90) + Vector((0, 0, 0.3)),
                               d, 0.8, 0.22, bend=0.35))
     for k in range(2):  # ergots derrière le coude / genou
-        pieces.append(m.spike(f"ergot{k}", "brun_noir", milieu + Vector((0, 0.65, 0.3 - 0.6 * k)),
+        pieces.append(m.spike(f"ergot{k}", "os", milieu + Vector((0, 0.65, 0.3 - 0.6 * k)),
                               (0.3 * s, 1, 0.3), BAS, 1.0 - 0.3 * k, 0.24, bend=0.3))
 
     # main (avant, 4 doigts) ou long pied (arrière, 5 doigts) : doigts roses de rat, griffes noires
@@ -215,7 +215,7 @@ def patte(m, nom, x, y, avant):
         pied = Vector((poignet.x, poignet.y - 0.9, 0.5))
         vol = Ellipsoid(pied, (1.05, 1.9, 0.5))
         angles, long_doigt = (-38, -19, 0, 19, 38), 1.0
-    pieces.append(m.ellipsoid("pied", "brun_rat_fonce", vol))
+    pieces.append(m.ellipsoid("pied", "anthracite_fonce", vol))
     pieces += m.scales("ep", vol, 3, (-0.6, 0.75), (25, 155), couleur_patte, Vector((0, -1, 0)), 0.5, h=0.08, tilt=4)
     avant_pied = pied + Vector((0, -vol.r.y * 0.6, 0))
     for k, ang in enumerate(angles):
@@ -227,7 +227,7 @@ def patte(m, nom, x, y, avant):
         bout = avant_pied + d * long_ + Vector((0, 0, -0.17))
         pieces.append(m.tube(f"doigt{k}", "rose_queue", [base, jointure, bout], [0.3, 0.26, 0.21], sides=6))
         pieces.append(m.ico(f"jointure{k}", "rose_queue", jointure, (0.24, 0.24, 0.2), subdiv=1))
-        pieces.append(m.spike(f"griffe{k}", "brun_noir", bout, d + Vector((0, 0, 0.12)), BAS, 0.85, 0.2,
+        pieces.append(m.spike(f"griffe{k}", "os", bout, d + Vector((0, 0, 0.12)), BAS, 0.85, 0.2,
                               bend=0.5, steps=5))
     m.join(f"Patte_{nom}", pieces)
 
@@ -263,7 +263,7 @@ def queue(m):
     for i in range(9):
         u = 0.06 + 0.8 * i / 8
         p, r, tg, cote, haut = echantillon_queue(u)
-        pieces.append(m.spike(f"dq{i}", "brun_noir", p + haut * r * 0.8, haut, tg, 1.1 * (1 - 0.6 * u),
+        pieces.append(m.spike(f"dq{i}", "os", p + haut * r * 0.8, haut, tg, 1.1 * (1 - 0.6 * u),
                               0.24 * (1 - 0.5 * u), bend=0.45))
     m.join("Queue", pieces)
 
@@ -290,10 +290,10 @@ def bord_haut(y, z, k=0.82):
 
 def tete(m):
     rng = random.Random("tete")
-    peau = lambda t, a, r: "brun_rat_fonce" if r.random() < 0.3 else "brun_rat"  # noqa: E731
-    pieces = [m.ellipsoid("crane", "brun_rat_fonce", CRANE, jitter=0.04),
-              m.ellipsoid("museau", "brun_rat", MUSEAU, jitter=0.03),
-              m.ellipsoid("nez", "brun_rat", NEZ, jitter=0.03),
+    peau = lambda t, a, r: "anthracite_fonce" if r.random() < 0.3 else "anthracite"  # noqa: E731
+    pieces = [m.ellipsoid("crane", "anthracite_fonce", CRANE, jitter=0.04),
+              m.ellipsoid("museau", "anthracite", MUSEAU, jitter=0.03),
+              m.ellipsoid("nez", "anthracite", NEZ, jitter=0.03),
               m.ellipsoid("gencive", "gueule", GENCIVE_HAUT),
               m.ico("truffe", "rose_queue", (0, -12.2, 5.62), (0.42, 0.34, 0.34), subdiv=1)]
     pieces += m.scales("ec", CRANE, 7, (-0.85, 0.75), (28, 152), peau, ARRIERE, 0.5, h=0.08, tilt=3, size=0.8)
@@ -305,16 +305,16 @@ def tete(m):
         narine = (0.2 * s, -12.5, 5.66)
         pieces.append(m.box(f"narine{s}", "brun_noir", narine, (0.1, 0.08, 0.07), rot=(0, 0, 25 * s), bevel=0.3))
         pieces += oeil(m, s)
-        pieces.append(m.tube(f"arcade{s}", "brun_rat_fonce",
+        pieces.append(m.tube(f"arcade{s}", "anthracite_fonce",
                              [(0.4 * s, -9.45, 7.05), (1.05 * s, -9.2, 7.32), (1.6 * s, -8.7, 7.42),
                               (1.8 * s, -8.1, 7.22)], [0.22, 0.3, 0.28, 0.1], sides=6))
         for k in range(3):
-            pieces.append(m.spike(f"arcade_ep{k}{s}", "brun_noir", (s * (0.95 + 0.33 * k), -9.15 + 0.3 * k, 7.5),
+            pieces.append(m.spike(f"arcade_ep{k}{s}", "os", (s * (0.95 + 0.33 * k), -9.15 + 0.3 * k, 7.5),
                                   (0.35 * s, 0.4, 1), ARRIERE, 0.45 + 0.1 * k, 0.15, bend=0.6, sides=4))
         # grande oreille ronde de rat, enracinée dans le crâne
         axe = Vector((0.6 * s, -0.8, 0.1)).normalized()
         centre = Vector((1.55 * s, -6.3, 7.75))
-        pieces.append(m.ellipsoid(f"oreille{s}", "brun_rat_fonce", Ellipsoid(centre, (1.0, 0.16, 1.15), axis=axe),
+        pieces.append(m.ellipsoid(f"oreille{s}", "anthracite_fonce", Ellipsoid(centre, (1.0, 0.16, 1.15), axis=axe),
                                   subdiv=2))
         pieces.append(m.ellipsoid(f"oreille_int{s}", "rose_queue",
                                   Ellipsoid(centre + axe * 0.08, (0.72, 0.1, 0.88), axis=axe), subdiv=2))
@@ -330,9 +330,9 @@ def tete(m):
                                  [0.045, 0.035, 0.0], sides=4))
         # muscle de la mâchoire + collerette d'épines sur les joues
         joue = Ellipsoid((1.3 * s, -7.9, 5.4), (0.6, 1.0, 0.8))
-        pieces.append(m.ellipsoid(f"masseter{s}", "brun_rat", joue, jitter=0.04, seed=3))
+        pieces.append(m.ellipsoid(f"masseter{s}", "anthracite", joue, jitter=0.04, seed=3))
         for k in range(4):
-            pieces.append(m.spike(f"joue{k}{s}", "brun_rat" if k % 2 else "brun_rat_fonce",
+            pieces.append(m.spike(f"joue{k}{s}", "anthracite" if k % 2 else "anthracite_fonce",
                                   (s * 1.6, -7.4 + 0.15 * k, 5.8 - 0.35 * k), (s, 0.7, 0.1 - 0.15 * k),
                                   ARRIERE, 1.2 - 0.12 * k, 0.28, bend=0.35))
         # crocs du haut, plantés dans la gencive
@@ -355,18 +355,18 @@ def tete(m):
         pieces.append(m.spike(f"incisive{s}", "ble", base, (0, -0.25, -1), ARRIERE, 1.35, 0.17, bend=0.25, sides=4))
     # couronne d'épines derrière le crâne
     for k, dx in enumerate((-0.7, 0.0, 0.7)):
-        pieces.append(m.spike(f"couronne{k}", "brun_noir", (dx, -6.5, 7.6), (dx * 0.4, 1, 0.7), BAS,
+        pieces.append(m.spike(f"couronne{k}", "os", (dx, -6.5, 7.6), (dx * 0.4, 1, 0.7), BAS,
                               1.3 - 0.3 * abs(dx), 0.28, bend=0.25))
     pieces.append(m.ellipsoid("gueule", "gueule", Ellipsoid((0, -9.4, 4.68), (0.85, 2.2, 0.35))))
     m.join("Tete", pieces)
 
-    mach = [m.ellipsoid("machoire", "rouille", MACHOIRE, jitter=0.04),
-            m.ellipsoid("menton", "rouille", Ellipsoid((0, -11.0, 3.95), (0.75, 0.55, 0.5)), jitter=0.05),
+    mach = [m.ellipsoid("machoire", "vert_toxique_fonce", MACHOIRE, jitter=0.04),
+            m.ellipsoid("menton", "vert_toxique_fonce", Ellipsoid((0, -11.0, 3.95), (0.75, 0.55, 0.5)), jitter=0.05),
             m.ellipsoid("gencive_bas", "gueule", Ellipsoid((0, -9.5, 4.82), (0.88, 2.1, 0.11))),
             m.ellipsoid("langue", "rose_queue", Ellipsoid((0, -9.8, 4.88), (0.55, 1.5, 0.12)))]
-    plaque = lambda t, a, r: ("brun_rat", "brun_rat_fonce", "rouille")[r.randrange(3)]  # noqa: E731
+    plaque = lambda t, a, r: ("anthracite", "anthracite_fonce", "vert_toxique")[r.randrange(3)]  # noqa: E731
     for s in (1, -1):
-        mach.append(m.ellipsoid(f"angle{s}", "brun_rat_fonce", Ellipsoid((0.85 * s, -7.9, 4.25), (0.5, 0.9, 0.6)),
+        mach.append(m.ellipsoid(f"angle{s}", "anthracite_fonce", Ellipsoid((0.85 * s, -7.9, 4.25), (0.5, 0.9, 0.6)),
                                 jitter=0.04, seed=6))
         cote = (-40, 25) if s > 0 else (155, 220)
         mach += m.scales(f"pj{s}", MACHOIRE, 4, (-0.8, 0.7), cote, plaque, ARRIERE, 0.6, h=0.1, tilt=7, seed=7 + s)
@@ -374,7 +374,7 @@ def tete(m):
             y = -10.7 + 0.38 * k
             t = (y - MACHOIRE.c.y) / MACHOIRE.r.y
             a = 300 if s > 0 else 240
-            mach.append(m.spike(f"frange{k}{s}", ("brun_rat_fonce", "rouille", "brun_rat")[k % 3],
+            mach.append(m.spike(f"frange{k}{s}", ("anthracite_fonce", "vert_toxique", "anthracite")[k % 3],
                                 MACHOIRE.point(t, a), MACHOIRE.normal(t, a) + Vector((0, 0.9, -0.3)), ARRIERE,
                                 0.45 + 0.06 * k, 0.17, bend=0.3, sides=4))
         for k in range(9):  # dents du bas, emboîtées entre celles du haut
@@ -398,7 +398,7 @@ def tete(m):
     for nom, s in (("Oeil_G", 1), ("Oeil_D", -1)):  # iris rouge : Material = Neon dans Roblox
         c, n, _, _, rh, rv = repere_oeil(s)
         m.ellipsoid(nom, "oeil_rouge", Ellipsoid(c + n * 0.03, (rh, 0.17, rv), axis=n), subdiv=2)
-        m.ellipsoid(f"Paupiere_{nom[-1]}", "brun_rat_fonce", Ellipsoid(c - n * PAUPIERE_SORTIE * 0.75,
+        m.ellipsoid(f"Paupiere_{nom[-1]}", "anthracite_fonce", Ellipsoid(c - n * PAUPIERE_SORTIE * 0.75,
                                                                        (rh * 1.12, 0.14, rv * 1.2), axis=n), subdiv=2)
 
 
@@ -424,9 +424,9 @@ def oeil(m, s):
         cx = math.cos(phi)
         haut.append(c + n * 0.16 + hx * rh * 1.08 * cx + hz * (rv * 0.62 * math.sin(phi) + 0.05 - 0.18 * avant * cx))
         bas.append(c + n * 0.08 + hx * rh * 1.05 * cx - hz * rv * 1.05 * math.sin(phi))
-    pieces.append(m.tube(f"paupiere_h{s}", "brun_rat_fonce", haut,
+    pieces.append(m.tube(f"paupiere_h{s}", "anthracite_fonce", haut,
                          [0.07, 0.12, 0.15, 0.16, 0.16, 0.16, 0.15, 0.12, 0.07], sides=6, ring_scale=(1.0, 0.75)))
-    pieces.append(m.tube(f"paupiere_b{s}", "brun_rat", bas, [0.04, 0.05, 0.06, 0.06, 0.06, 0.06, 0.06, 0.05, 0.04],
+    pieces.append(m.tube(f"paupiere_b{s}", "anthracite", bas, [0.04, 0.05, 0.06, 0.06, 0.06, 0.06, 0.06, 0.05, 0.04],
                          sides=5))
     return pieces
 

@@ -56,12 +56,16 @@ PALETTE = {
     "brun_noir": (56, 44, 34),
     "oeil_glace": (210, 240, 255),
     "gueule": (110, 34, 40),
-    "brun_rat": (108, 94, 86),
-    "brun_rat_fonce": (72, 62, 58),
+    "anthracite": (74, 77, 84),
+    "anthracite_fonce": (46, 48, 55),
     "ble": (236, 196, 92),
     "ble_fonce": (186, 140, 58),
     "rose_queue": (190, 132, 126),
     "oeil_rouge": (255, 64, 40),
+    "vert_toxique": (140, 196, 52),
+    "vert_toxique_fonce": (78, 122, 40),
+    "os": (228, 218, 190),
+    "gris_clair": (160, 162, 160),
 }
 
 GRID = 8          # 8 x 8 cases

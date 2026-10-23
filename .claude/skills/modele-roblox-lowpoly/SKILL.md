@@ -14,7 +14,11 @@ et l'adapter.
 **Direction artistique commune** (« mutants » de Steal an Egg) : écailles qui se chevauchent avec zigzags rouille
 sur les flancs, crête d'épines noires courbes, gueule à crocs (mâchoire massive à plaques et frange), yeux de
 reptile lumineux, pattes écaillées à ergots. Chaque zone ajoute sa touche (Prairie : cornes de bélier ;
-Champ : épis de blé mutants sur le dos) et sa couleur d'yeux (ambre, rouge…).
+Champ : épis de blé mutants sur le dos).
+**Chaque gardien a sa propre palette** (l'utilisateur a refusé un rat aux couleurs du Bélier) : mêmes formes,
+couleurs différentes. Bélier : sable + zigzags rouille, épines noires, yeux ambre. Rat : anthracite + zigzags vert
+toxique, épines couleur os, yeux rouges. Pour un nouveau gardien, choisir une palette nettement différente des
+précédents et l'annoncer à l'utilisateur.
 
 ## Mise en route
 
