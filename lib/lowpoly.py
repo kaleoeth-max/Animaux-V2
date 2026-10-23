@@ -55,6 +55,7 @@ PALETTE = {
     "rouille": (212, 100, 34),
     "brun_noir": (56, 44, 34),
     "oeil_glace": (210, 240, 255),
+    "gueule": (110, 34, 40),
 }
 
 GRID = 8          # 8 x 8 cases
@@ -168,6 +169,11 @@ class Ellipsoid:
         lo = self.local(t, a)
         g = Vector((lo.x / self.r.x ** 2, lo.y / self.r.y ** 2, lo.z / self.r.z ** 2))
         return (self.R @ g).normalized()
+
+    def inside(self, p, marge=0.0):
+        """Vrai si le point p est dans l'ellipsoïde (agrandi de `marge`)."""
+        lo = self.R.transposed() @ (Vector(p) - self.c)
+        return sum((lo[i] / (self.r[i] + marge)) ** 2 for i in range(3)) < 1.0
 
     def axis(self):
         return self.R.col[1].copy()
@@ -378,6 +384,13 @@ class Model:
         self.collection.objects.link(obj)
         self.parts.append(obj)
         return obj
+
+    def rotate_about(self, objs, angle, axis, pivot):
+        """Fait tourner des pièces autour d'un point (ex. ouvrir une mâchoire)."""
+        mat = (Matrix.Translation(Vector(pivot)) @ Matrix.Rotation(math.radians(angle), 4, axis)
+               @ Matrix.Translation(-Vector(pivot)))
+        for o in objs:
+            o.data.transform(mat)
 
     def scale_about(self, objs, factor, pivot, offset=(0, 0, 0)):
         """Agrandit des pièces autour d'un point (pour ajuster les proportions)."""

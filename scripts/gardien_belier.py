@@ -206,6 +206,16 @@ def queue(m):
 CRANE = Ellipsoid((0, -8.7, 7.0), (1.9, 2.4, 1.7))
 MUSEAU = Ellipsoid((0, -10.9, 6.35), (1.35, 1.65, 0.95))
 MACHOIRE = Ellipsoid((0, -10.2, 5.05), (1.25, 2.1, 0.55), axis=(0, 1, 0.08))
+CHARNIERE = (0, -8.3, 5.5)
+LEVRE_HAUT = 5.75  # hauteur où les crocs du haut sortent du museau
+LEVRE_BAS = 5.45   # hauteur où les dents du bas sortent de la mâchoire
+
+
+def bord(e, y, z, k=0.82):
+    """Demi-largeur de l'ellipsoïde e à (y, z), réduite de k pour planter une dent juste à l'intérieur."""
+    q = (y - e.c.y) / e.r.y
+    h = (z - e.c.z) / e.r.z
+    return e.r.x * math.sqrt(max(0.08, 1 - q * q - h * h)) * k
 
 
 def tete(m):
@@ -234,53 +244,66 @@ def tete(m):
             pieces.append(m.spike(f"joue{k}{s}", "sable" if k % 2 else "sable_fonce",
                                   (s * 1.55, -8.2 + 0.15 * k, 6.4 - 0.4 * k), (s, 0.7, 0.1 - 0.15 * k),
                                   ARRIERE, 1.4 - 0.15 * k, 0.32, bend=0.35))
-        # crocs du haut, le long du bord du museau
+        # crocs du haut : plantés sous le museau, à l'intérieur de son bord
         for k in range(8):
-            y = -9.3 - 0.4 * k
-            q = (y - MUSEAU.c.y) / MUSEAU.r.y
-            xb = MUSEAU.r.x * math.sqrt(max(0.05, 1 - q * q)) * 0.82
-            pieces.append(m.spike(f"croc{k}{s}", "dent", (s * xb, y, 5.7), (0, -0.1, -1), (0, -1, 0),
-                                  0.45 + rng.uniform(0, 0.25) + 0.25 * (k == 2), 0.15, bend=0.15,
-                                  sides=4, steps=1))
-        pieces.append(corne(m, s))
+            y = -9.2 - 0.4 * k
+            pieces.append(m.spike(f"croc{k}{s}", "dent", (s * bord(MUSEAU, y, LEVRE_HAUT), y, LEVRE_HAUT + 0.08),
+                                  (0, -0.1, -1), (0, -1, 0), 0.5 + rng.uniform(0, 0.2) + 0.2 * (k == 2), 0.15,
+                                  bend=0.15, sides=4, steps=1))
+        obj, pts, radii = corne(m, s)
+        pieces.append(obj)
+        dedans = verifie_cornes(pts, radii)
+        if dedans:
+            print(f"ATTENTION : la corne {'G' if s > 0 else 'D'} touche le corps ({len(dedans)} points)")
     # couronne d'épines à l'arrière du crâne
     for k, dx in enumerate((-0.8, 0.0, 0.8)):
         pieces.append(m.spike(f"couronne{k}", "brun_noir", (dx, -7.0, 8.2), (dx * 0.4, 1, 0.7), BAS,
                               1.5 - 0.3 * abs(dx), 0.32, bend=0.25))
+    # intérieur de la gueule (visible quand la mâchoire est ouverte)
+    pieces.append(m.ellipsoid("gueule", "gueule", Ellipsoid((0, -10.2, 5.55), (1.0, 1.9, 0.4))))
     m.join("Tete", pieces)
 
     mach = [m.ellipsoid("machoire", "rouille", MACHOIRE)]
     for s in (1, -1):
         for k in range(6):
-            y = -9.4 - 0.45 * k
-            q = (y - MACHOIRE.c.y) / MACHOIRE.r.y
-            xb = MACHOIRE.r.x * math.sqrt(max(0.05, 1 - q * q)) * 0.8
-            mach.append(m.spike(f"dent{k}{s}", "dent", (s * xb, y, 5.4), (0, -0.1, 1), (0, -1, 0),
-                                0.3 + 0.05 * (k % 2), 0.12, bend=0.1, sides=4, steps=1))
-        mach.append(m.spike(f"defense{s}", "dent", (s * 1.0, -11.0, 5.3), (0.15 * s, -0.3, 1), (s, 0, 0),
-                            0.95, 0.2, bend=0.35))
-    m.join("Machoire", mach)
+            y = -9.3 - 0.45 * k
+            mach.append(m.spike(f"dent{k}{s}", "dent", (s * bord(MACHOIRE, y, LEVRE_BAS), y, LEVRE_BAS - 0.08),
+                                (0, -0.1, 1), (0, -1, 0), 0.32 + 0.08 * (k % 2), 0.12, bend=0.1,
+                                sides=4, steps=1))
+        # défenses : sortent du bord de la mâchoire et remontent le long du museau, côté extérieur
+        mach.append(m.spike(f"defense{s}", "dent", (s * bord(MACHOIRE, -11.2, 5.25, 0.95), -11.2, 5.25),
+                            (0.45 * s, -0.2, 1), (s, 0, 0), 1.0, 0.2, bend=0.35))
+    machoire = m.join("Machoire", mach)
+    # gueule entrouverte : la mâchoire pivote autour de la charnière
+    m.rotate_about([machoire], 14, "X", CHARNIERE)
 
     for nom, s in (("Oeil_G", 1), ("Oeil_D", -1)):  # Material = Neon dans Roblox
         m.ico(nom, "oeil_glace", (1.86 * s, -9.7, 7.32), (0.2, 0.36, 0.2), rot=(0, 0, -12 * s))
 
 
 def corne(m, s):
-    """Corne annelée en spirale : s'écarte de la tête, tourne en arrière, en bas, puis pointe vers l'avant."""
+    """Corne annelée de bélier : part du haut du crâne, passe derrière l'oeil, descend et revient
+    vers l'avant le long de la joue. Elle reste autour de la tête, sans toucher le cou ni le corps."""
     pts, radii = [], []
-    n, tours = 56, 0.95
+    n, tours = 56, 0.92
     for i in range(n):
         u = i / (n - 1)
-        theta = (u * tours - 0.02) * 2 * math.pi
-        rayon = 2.4 * (1 - 0.35 * u)
-        x = (0.9 + 3.5 * u ** 0.6) * s  # racine enfoncée dans le crâne
-        y = -6.9 + 1.3 * rayon * math.sin(theta) - 1.0 * u
-        z = 6.55 + 0.75 * rayon * math.cos(theta)
+        theta = (u * tours - 0.08) * 2 * math.pi
+        retrecit = 1 - 0.35 * u
+        x = (0.9 + 3.3 * u ** 0.45) * s  # s'écarte vite du crâne
+        y = -8.3 + 1.7 * retrecit * math.sin(theta)
+        z = 7.1 + 2.0 * retrecit * math.cos(theta)
         pts.append((x, y, z))
         anneau = 1.0 + (0.11 if i % 2 == 0 else 0.0)  # anneaux de croissance
         radii.append((0.95 * (1 - u) + 0.1 * u) * anneau)
     radii[-1] = 0.0
-    return m.tube(f"corne{s}", "brun_noir", pts, radii, sides=7, ring_scale=(1.0, 0.7), up=(1, 0, 0))
+    return m.tube(f"corne{s}", "brun_noir", pts, radii, sides=7, ring_scale=(1.0, 0.7), up=(1, 0, 0)), pts, radii
+
+
+def verifie_cornes(pts, radii):
+    """Liste les points de la corne qui rentrent dans le cou, le torse ou les épaules."""
+    volumes = list(TORSE) + [Ellipsoid((x, y, 6.0), (1.5, 1.8, 2.0)) for x, y in ((2.9, -3.4), (-2.9, -3.4))]
+    return [i for i, (p, r) in enumerate(zip(pts, radii)) if any(e.inside(p, r) for e in volumes)]
 
 
 if __name__ == "__main__":
