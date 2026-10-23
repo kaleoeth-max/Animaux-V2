@@ -50,6 +50,11 @@ PALETTE = {
     "brun_patte": (92, 56, 44),
     "noir_brillant": (34, 26, 28),
     "joue_rose": (246, 156, 150),
+    "sable": (216, 184, 140),
+    "sable_fonce": (178, 144, 102),
+    "rouille": (212, 100, 34),
+    "brun_noir": (56, 44, 34),
+    "oeil_glace": (210, 240, 255),
 }
 
 GRID = 8          # 8 x 8 cases
