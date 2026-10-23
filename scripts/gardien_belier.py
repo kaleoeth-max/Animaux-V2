@@ -1,139 +1,296 @@
-"""Gardien de la Prairie n°1 : le Bélier Colosse (version monstre / boss).
+"""Gardien de la Prairie n°1 : le Bélier Colosse (version monstre / boss, détaillée).
 
-Bête blindée à quatre pattes : corps bas couleur sable rayé de rouille, épines sombres le
-long du dos, énormes cornes noires en spirale, gueule à crocs, griffes et queue à épines.
+Bête blindée à quatre pattes couverte d'écailles qui se chevauchent : sable sur le dessus,
+zigzags orange rouille sur les flancs et le ventre. Rangées d'épines noires courbes sur le
+dos, énormes cornes annelées en spirale, gueule pleine de crocs, collerette d'épines sur les
+joues, doigts griffus et longue queue à nageoires d'épines.
 Rôle : le gardien « tank », lent, massif et terrifiant.
 
 Lancer :  python3 scripts/gardien_belier.py
 """
 import math
 import os
+import random
 import sys
 
 sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "lib"))
 import lowpoly as lp  # noqa: E402
+from lowpoly import Ellipsoid, Vector, zigzag  # noqa: E402
 
 NAME = "Gardien_Prairie_Belier"
+ARRIERE = Vector((0, 1, 0))  # les écailles et épines du corps pointent vers l'arrière
+BAS = Vector((0, 0, -1))
+
+# volumes du corps (alignés sur Y : face vers -Y)
+COU = Ellipsoid((0, -6.3, 7.0), (1.95, 2.2, 1.95))
+POITRAIL = Ellipsoid((0, -3.4, 6.5), (3.2, 3.0, 2.9))
+DOS = Ellipsoid((0, 0.6, 6.7), (3.0, 3.6, 2.8))
+HANCHES = Ellipsoid((0, 4.6, 6.2), (2.7, 2.9, 2.5))
+VENTRE = Ellipsoid((0, 0.6, 4.6), (2.4, 5.8, 1.4))
+TORSE = (COU, POITRAIL, DOS, HANCHES)
 
 
-def epine(m, nom, base, hauteur, rayon, penche=(0, 0, 0), couleur="brun_noir"):
-    """Épine à 4 faces posée sur `base`, inclinée de `penche` (degrés)."""
-    rx, ry, rz = penche
-    rot = lp.Euler(tuple(math.radians(a) for a in penche), "XYZ").to_matrix()
-    centre = lp.Vector(base) + rot @ lp.Vector((0, 0, hauteur / 2))
-    return m.cone(nom, couleur, tuple(centre), rayon, 0.0, hauteur, rot=(rx, ry, rz), sides=4)
+def couleur_corps(t, a, rng):
+    """Dessus sable (avec des écailles plus foncées), flancs et ventre en zigzags rouille."""
+    lat = math.sin(math.radians(a))
+    decale = 0.0 if math.cos(math.radians(a)) >= 0 else 0.37
+    if lat < -0.1 + 0.45 * zigzag(t * 2.2 + decale):
+        return "rouille"
+    return "sable_fonce" if rng.random() < 0.28 else "sable"
+
+
+def dessus(x, y):
+    """Hauteur du dos en (x, y) : le point le plus haut des volumes du torse."""
+    z = None
+    for e in TORSE:
+        k = 1 - (x / e.r.x) ** 2 - ((y - e.c.y) / e.r.y) ** 2
+        if k > 0:
+            zz = e.c.z + e.r.z * math.sqrt(k)
+            z = zz if z is None else max(z, zz)
+    return z
 
 
 def build():
     lp.reset_scene()
     m = lp.Model(NAME)
-
-    # ---------------------------------------------------------------- corps blindé
-    corps = [
-        m.ico("poitrail", "sable", (0, -3.2, 6.2), (3.3, 3.0, 2.9), jitter=0.22),
-        m.ico("dos", "sable", (0, 0.6, 6.4), (3.1, 3.4, 2.8), jitter=0.22, seed=1),
-        m.ico("hanches", "sable", (0, 4.2, 6.0), (2.8, 2.7, 2.5), jitter=0.2, seed=2),
-        m.ico("ventre", "rouille", (0, 0.4, 4.4), (2.3, 5.6, 1.3), jitter=0.12),
-    ]
-    # plaques d'armure sur l'échine
-    for i, y in enumerate((-4.2, -2.4, -0.6, 1.2, 3.0, 4.8)):
-        corps.append(m.box(f"plaque{i}", "sable_fonce" if i % 2 else "sable", (0, y, 8.9 - 0.12 * abs(y)),
-                           (1.6, 0.85, 0.45), rot=(-12, 0, 0), bevel=0.3))
-    # rayures rouille sur les flancs (en chevrons)
-    for i, y in enumerate((-4.4, -2.6, -0.8, 1.0, 2.8, 4.5)):
-        for s in (1, -1):
-            corps.append(m.box(f"rayure{i}{s}", "rouille", ((2.75 - 0.08 * abs(y)) * s, y, 6.6),
-                               (0.35, 0.36, 1.15 + 0.25 * (i % 2)), rot=(22, 10 * s, 0), bevel=0.25))
-    # crinière de piquants sable autour du cou (le reste de sa laine)
-    for i in range(9):
-        a = math.radians(-100 + i * 25)
-        corps.append(epine(m, f"criniere{i}", (2.6 * math.sin(a), -5.0, 6.9 + 2.4 * math.cos(a)),
-                           2.0, 0.75, penche=(-55, 40 * math.sin(a), 0), couleur="sable_fonce"))
-    # grandes épines du dos + petites rangées sur les épaules
-    for i, (y, h) in enumerate(((-4.6, 2.2), (-3.0, 2.8), (-1.3, 3.1), (0.4, 3.0), (2.1, 2.6), (3.8, 2.1), (5.3, 1.6))):
-        corps.append(epine(m, f"epine{i}", (0, y, 8.6 - 0.1 * abs(y)), h, 0.6, penche=(-28, 0, 0)))
-        for s in (1, -1):
-            corps.append(epine(m, f"epine_cote{i}{s}", (1.7 * s, y + 0.3, 8.0 - 0.15 * abs(y)), h * 0.55, 0.38,
-                               penche=(-30, 32 * s, 0)))
-    m.join("Corps", corps)
-
-    # ---------------------------------------------------------------- pattes griffues
+    corps(m)
     for nom, x, y, avant in (("AvG", 2.9, -3.4, True), ("AvD", -2.9, -3.4, True),
-                             ("ArG", 2.7, 4.2, False), ("ArD", -2.7, 4.2, False)):
-        s = 1 if x > 0 else -1
-        epaule = (x, y, 5.6)
-        coude = (x + 0.5 * s, y + (0.4 if avant else 0.9), 3.0)
-        pied = (x + 0.6 * s, y - 0.6, 0.55)
-        patte = [
-            m.ico("epaule", "sable", epaule, (1.5, 1.7, 2.0), jitter=0.15, seed=int(y)),
-            m.beam("haut", "sable_fonce", epaule, coude, 1.0, 1.1, bevel=0.2),
-            m.beam("bas", "sable", coude, pied, 0.85, 0.9, bevel=0.2),
-            m.box("bande", "rouille", (coude[0], coude[1] - 0.1, 2.2), (1.0, 1.0, 0.3), bevel=0.3),
-            m.ico("pied", "sable_fonce", (pied[0], pied[1] - 0.3, 0.5), (1.2, 1.5, 0.55)),
-            epine(m, "ergot", (coude[0], coude[1] + 0.8, coude[2]), 1.3, 0.35, penche=(-70, 0, 0)),
-        ]
-        for k, dx in enumerate((-0.65, 0.0, 0.65)):  # trois griffes vers l'avant
-            patte.append(epine(m, f"griffe{k}", (pied[0] + dx, pied[1] - 1.5, 0.35), 1.0, 0.25,
-                               penche=(100, 0, 0)))
-        m.join(f"Patte_{nom}", patte)
-
-    # ---------------------------------------------------------------- queue à épines
-    pts = [(0, 6.2, 6.0), (0, 8.8, 5.2), (0, 11.4, 4.2), (0, 13.8, 3.6), (0, 16.0, 3.4)]
-    queue = [m.tube("queue", "sable", pts, [1.5, 1.15, 0.8, 0.45, 0.0], sides=6, ring_scale=(1.0, 0.8))]
-    for i, (y, z, h) in enumerate(((8.6, 6.3, 1.6), (10.6, 5.2, 1.3), (12.5, 4.4, 1.0), (14.3, 3.9, 0.8))):
-        queue.append(epine(m, f"q{i}", (0, y, z), h, 0.4, penche=(-40, 0, 0)))
-        for s in (1, -1):
-            queue.append(epine(m, f"q{i}{s}", (0.9 * s * (1 - i * 0.2), y + 0.3, z - 0.6), h * 0.9, 0.3,
-                               penche=(-60, 70 * s, 0), couleur="rouille"))
-    m.join("Queue", queue)
-
-    # ---------------------------------------------------------------- tête
-    tete = [
-        m.ico("crane", "sable", (0, -7.6, 6.9), (2.0, 2.3, 1.8), rot=(-8, 0, 0), jitter=0.12),
-        m.ico("museau", "sable", (0, -9.9, 6.2), (1.45, 1.7, 1.05), jitter=0.08),
-        m.box("arcade", "brun_noir", (0, -8.9, 7.75), (1.75, 0.45, 0.3), rot=(-15, 0, 0), bevel=0.3),
-        m.box("narines", "brun_noir", (0, -11.45, 6.45), (0.6, 0.15, 0.3), bevel=0.3),
-    ]
-    for s in (1, -1):
-        for k, y in enumerate((-9.2, -10.0, -10.8)):  # crocs du haut
-            tete.append(epine(m, f"croc{k}{s}", ((1.05 - 0.1 * k) * s, y, 5.5), 0.55 + 0.15 * (k == 0), 0.16,
-                              penche=(180, 0, 0), couleur="dent"))
-        tete.append(corne(m, s))
-    tete = [m.join("Tete", tete)]
-
-    machoire = [m.ico("machoire", "rouille", (0, -9.3, 4.95), (1.25, 2.0, 0.55), rot=(8, 0, 0))]
-    for s in (1, -1):  # défenses du bas
-        machoire.append(epine(m, f"defense{s}", (0.95 * s, -10.6, 5.1), 0.8, 0.2, penche=(-10, 10 * s, 0),
-                              couleur="dent"))
-    m.join("Machoire", machoire)
-
-    # yeux séparés : Material = Neon dans Roblox
-    for nom, s in (("Oeil_G", 1), ("Oeil_D", -1)):
-        m.ico(nom, "oeil_glace", (1.35 * s, -9.0, 7.15), (0.22, 0.3, 0.2), subdiv=1)
+                             ("ArG", 2.7, 4.4, False), ("ArD", -2.7, 4.4, False)):
+        patte(m, nom, x, y, avant)
+    queue(m)
+    tete(m)
     return m
 
 
+# ---------------------------------------------------------------------------- corps
+
+def corps(m):
+    pieces = [m.ellipsoid(f"vol{i}", "sable_fonce", e, jitter=0.08, seed=i) for i, e in enumerate(TORSE)]
+    pieces.append(m.ellipsoid("ventre", "rouille", VENTRE))
+
+    # écailles qui se chevauchent sur tout le torse
+    zones = ((COU, 5, (-0.85, 0.6), 0.95), (POITRAIL, 6, (-0.9, 0.55), 1.1),
+             (DOS, 7, (-0.75, 0.8), 1.15), (HANCHES, 6, (-0.45, 0.95), 1.1))
+    for i, (e, rangs, plage, pas) in enumerate(zones):
+        pieces += m.scales(f"ec{i}_", e, rangs, plage, (-90, 270), couleur_corps, ARRIERE, pas, h=0.17,
+                           tilt=9, seed=i)
+    pieces += m.scales("ev_", VENTRE, 7, (-0.8, 0.8), (225, 315), lambda t, a, r: "rouille", ARRIERE, 0.75,
+                       h=0.2, tilt=10)
+
+    # rangée centrale de grandes épines courbes + deux rangées sur les côtés + une rangée sur les flancs
+    rng = random.Random("crete")
+    n = 11
+    for i in range(n):
+        y = -7.2 + i * (14.0 / (n - 1)) + rng.uniform(-0.3, 0.3)
+        L = (1.2 + 2.6 * math.sin(math.pi * (i + 0.5) / n)) * rng.uniform(0.75, 1.1)
+        z = dessus(0, y)
+        if z is None:
+            continue
+        pieces.append(m.spike(f"epine{i}", "brun_noir", (0, y, z - 0.2), (0, -0.15, 1), ARRIERE, L,
+                              0.5 + 0.12 * L / 3, bend=0.55))
+        for s in (1, -1):
+            for (dx, k, penche) in ((1.35, 0.55, 0.55), (2.35, 0.32, 1.4)):
+                if i % 2 and dx > 2:  # rangée des flancs : une épine sur deux
+                    continue
+                zc = dessus(dx, y + 0.3)
+                if zc is None:
+                    continue
+                pieces.append(m.spike(f"epine{i}_{dx}{s}", "brun_noir", (dx * s, y + 0.3, zc - 0.15),
+                                      (penche * s, 0, 1), ARRIERE, L * k * rng.uniform(0.8, 1.2), 0.34,
+                                      bend=0.5))
+    m.join("Corps", pieces)
+
+
+# ---------------------------------------------------------------------------- pattes
+
+def couleur_patte(t, a, rng):
+    if t > -0.1 + 0.4 * zigzag(a / 120):
+        return "rouille"
+    return "sable_fonce" if rng.random() < 0.3 else "sable"
+
+
+def patte(m, nom, x, y, avant):
+    s = 1 if x > 0 else -1
+    epaule = Vector((x, y, 5.9))
+    coude = Vector((x + 0.6 * s, y + (0.5 if avant else 1.0), 3.0))
+    cheville = Vector((x + 0.7 * s, y - 0.5, 1.0))
+    haut = Ellipsoid.between(epaule, coude, 1.15, 1.25)
+    bas = Ellipsoid.between(coude, cheville, 0.9)
+    epaule_vol = Ellipsoid((x, y, 6.0), (1.5, 1.8, 2.0))
+    pieces = [m.ellipsoid("epaule", "sable_fonce", epaule_vol),
+              m.ellipsoid("haut", "sable_fonce", haut),
+              m.ellipsoid("bas", "sable_fonce", bas)]
+    pieces += m.scales("ee", epaule_vol, 4, (-0.8, 0.8), (-90, 270), couleur_corps, BAS, 0.95, h=0.16, tilt=8)
+    pieces += m.scales("eh", haut, 4, (-0.8, 0.85), (0, 360), couleur_patte, None, 0.9, h=0.15, tilt=8)
+    pieces += m.scales("eb", bas, 4, (-0.85, 0.85), (0, 360), couleur_patte, None, 0.8, h=0.14, tilt=8)
+
+    # ergots derrière le coude
+    for k in range(2):
+        pieces.append(m.spike(f"ergot{k}", "brun_noir", coude + Vector((0, 0.7, 0.4 - 0.8 * k)),
+                              (0.3 * s, 1, 0.3), BAS, 1.3 - 0.4 * k, 0.3, bend=0.3))
+
+    # pied + quatre doigts griffus + une griffe arrière
+    pied = Vector((cheville.x, cheville.y - 0.4, 0.55))
+    pieces.append(m.ellipsoid("pied", "sable_fonce", Ellipsoid(pied, (1.2, 1.5, 0.6))))
+    for k, ang in enumerate((-42, -14, 14, 42)):
+        r = math.radians(ang)
+        d = Vector((math.sin(r), -math.cos(r), 0))
+        bout = pied + d * 1.75 + Vector((0, 0, -0.15))
+        pieces.append(m.tube(f"doigt{k}", "sable", [pied + d * 0.6, pied + d * 1.2 + Vector((0, 0, 0.05)), bout],
+                             [0.42, 0.36, 0.3], sides=5))
+        pieces.append(m.kite(f"ecdoigt{k}", "rouille", pied + d * 1.1 + Vector((0, 0, 0.3)), (0, 0, 1), d,
+                             0.55, 0.8, 0.18, tilt=8))
+        pieces.append(m.spike(f"griffe{k}", "brun_noir", bout, d, BAS, 0.95, 0.26, bend=0.7))
+    pieces.append(m.spike("griffe_arr", "brun_noir", pied + Vector((0, 1.2, 0.2)), (0, 1, 0.2), BAS, 0.7, 0.22,
+                          bend=0.6))
+    m.join(f"Patte_{nom}", pieces)
+
+
+# ---------------------------------------------------------------------------- queue
+
+def queue(m):
+    chemin = [Vector(p) for p in ((0, 6.6, 6.0), (0, 9.4, 5.2), (0.4, 12.2, 4.3), (0.9, 14.8, 3.6),
+                                  (0.7, 17.3, 3.1), (0.2, 19.6, 2.8))]
+    rayons = [1.75, 1.4, 1.05, 0.75, 0.42, 0.0]
+    pieces = [m.tube("queue", "sable_fonce", chemin, rayons, sides=7, ring_scale=(1.0, 0.85))]
+    rng = random.Random("queue")
+
+    def echantillon(u):
+        f = u * (len(chemin) - 1)
+        i = min(int(f), len(chemin) - 2)
+        w = f - i
+        p = chemin[i].lerp(chemin[i + 1], w)
+        r = rayons[i] + (rayons[i + 1] - rayons[i]) * w
+        tg = (chemin[i + 1] - chemin[i]).normalized()
+        cote = tg.cross(Vector((0, 0, 1))).normalized()
+        return p, r, tg, cote, cote.cross(tg)
+
+    # écailles en anneaux
+    rangs = 16
+    for i in range(rangs):
+        u = 0.03 + 0.85 * i / (rangs - 1)
+        p, r, tg, cote, haut = echantillon(u)
+        nb = max(4, round(2 * math.pi * r / 0.7))
+        for k in range(nb):
+            a = 2 * math.pi * (k + 0.5 * (i % 2)) / nb
+            nrm = cote * math.cos(a) + haut * math.sin(a)
+            if math.sin(a) < -0.1 + 0.45 * zigzag(u * 6):
+                couleur = "rouille"
+            else:
+                couleur = "sable_fonce" if rng.random() < 0.3 else "sable"
+            pos = p + (cote * math.cos(a) + haut * 0.85 * math.sin(a)) * r
+            pieces.append(m.kite(f"eq{i}_{k}", couleur, pos, nrm, tg,
+                                 max(2 * math.pi * r / nb * 1.35, 0.25), 1.05 - 0.4 * u, 0.15, tilt=9))
+
+    # nageoires d'épines sur les côtés + épines noires sur le dessus
+    for i in range(11):
+        u = 0.08 + 0.84 * i / 10
+        p, r, tg, cote, haut = echantillon(u)
+        L = 2.0 * (1 - 0.55 * u)
+        for s in (1, -1):
+            pieces.append(m.spike(f"nag{i}{s}", "rouille" if i % 2 else "sable", p + cote * s * r * 0.9,
+                                  cote * s + tg * 0.25, tg, L, 0.28 * (1 - 0.4 * u), bend=0.5))
+        pieces.append(m.spike(f"dq{i}", "brun_noir", p + haut * r * 0.8, haut, tg, L * 0.75,
+                              0.3 * (1 - 0.4 * u), bend=0.45))
+    # bouquet d'épines au bout
+    p, r, tg, cote, haut = echantillon(0.97)
+    for k, ang in enumerate((-50, -25, 0, 25, 50)):
+        d = tg * math.cos(math.radians(ang)) + cote * math.sin(math.radians(ang))
+        pieces.append(m.spike(f"bout{k}", "brun_noir", p, d + haut * 0.15, haut, 1.6 - 0.25 * abs(ang) / 25,
+                              0.26, bend=0.2))
+    m.join("Queue", pieces)
+
+
+# ---------------------------------------------------------------------------- tête
+
+CRANE = Ellipsoid((0, -8.7, 7.0), (1.9, 2.4, 1.7))
+MUSEAU = Ellipsoid((0, -10.9, 6.35), (1.35, 1.65, 0.95))
+MACHOIRE = Ellipsoid((0, -10.2, 5.05), (1.25, 2.1, 0.55), axis=(0, 1, 0.08))
+
+
+def tete(m):
+    rng = random.Random("tete")
+    pieces = [m.ellipsoid("crane", "sable_fonce", CRANE, jitter=0.05),
+              m.ellipsoid("museau", "sable", MUSEAU, jitter=0.04)]
+    pieces += m.scales("ec", CRANE, 4, (-0.8, 0.7), (32, 148),
+                       lambda t, a, r: "sable_fonce" if r.random() < 0.35 else "sable", ARRIERE, 0.95,
+                       h=0.14, tilt=6)
+    pieces += m.scales("em", MUSEAU, 3, (-0.7, 0.5), (45, 135), lambda t, a, r: "sable", ARRIERE, 0.8,
+                       h=0.1, tilt=4)
+    pieces += [
+        m.box("narine_g", "brun_noir", (0.42, -12.45, 6.75), (0.17, 0.12, 0.12), rot=(0, 0, 20), bevel=0.3),
+        m.box("narine_d", "brun_noir", (-0.42, -12.45, 6.75), (0.17, 0.12, 0.12), rot=(0, 0, -20), bevel=0.3),
+        m.box("orbite_g", "brun_noir", (1.62, -9.55, 7.3), (0.3, 0.6, 0.32), rot=(0, 0, -12), bevel=0.3),
+        m.box("orbite_d", "brun_noir", (-1.62, -9.55, 7.3), (0.3, 0.6, 0.32), rot=(0, 0, 12), bevel=0.3),
+    ]
+    for s in (1, -1):
+        # arcade sourcilière en épines
+        for k in range(4):
+            pieces.append(m.spike(f"arcade{k}{s}", "brun_noir",
+                                  (s * (0.6 + 0.3 * k), -10.0 + 0.45 * k, 7.75 + 0.05 * k),
+                                  (0.3 * s, 0.4, 1), ARRIERE, 0.55 + 0.1 * k, 0.2, bend=0.6, sides=4))
+        # collerette d'épines sur les joues
+        for k in range(4):
+            pieces.append(m.spike(f"joue{k}{s}", "sable" if k % 2 else "sable_fonce",
+                                  (s * 1.55, -8.2 + 0.15 * k, 6.4 - 0.4 * k), (s, 0.7, 0.1 - 0.15 * k),
+                                  ARRIERE, 1.4 - 0.15 * k, 0.32, bend=0.35))
+        # crocs du haut, le long du bord du museau
+        for k in range(8):
+            y = -9.3 - 0.4 * k
+            q = (y - MUSEAU.c.y) / MUSEAU.r.y
+            xb = MUSEAU.r.x * math.sqrt(max(0.05, 1 - q * q)) * 0.82
+            pieces.append(m.spike(f"croc{k}{s}", "dent", (s * xb, y, 5.7), (0, -0.1, -1), (0, -1, 0),
+                                  0.45 + rng.uniform(0, 0.25) + 0.25 * (k == 2), 0.15, bend=0.15,
+                                  sides=4, steps=1))
+        pieces.append(corne(m, s))
+    # couronne d'épines à l'arrière du crâne
+    for k, dx in enumerate((-0.8, 0.0, 0.8)):
+        pieces.append(m.spike(f"couronne{k}", "brun_noir", (dx, -7.0, 8.2), (dx * 0.4, 1, 0.7), BAS,
+                              1.5 - 0.3 * abs(dx), 0.32, bend=0.25))
+    m.join("Tete", pieces)
+
+    mach = [m.ellipsoid("machoire", "rouille", MACHOIRE)]
+    for s in (1, -1):
+        for k in range(6):
+            y = -9.4 - 0.45 * k
+            q = (y - MACHOIRE.c.y) / MACHOIRE.r.y
+            xb = MACHOIRE.r.x * math.sqrt(max(0.05, 1 - q * q)) * 0.8
+            mach.append(m.spike(f"dent{k}{s}", "dent", (s * xb, y, 5.4), (0, -0.1, 1), (0, -1, 0),
+                                0.3 + 0.05 * (k % 2), 0.12, bend=0.1, sides=4, steps=1))
+        mach.append(m.spike(f"defense{s}", "dent", (s * 1.0, -11.0, 5.3), (0.15 * s, -0.3, 1), (s, 0, 0),
+                            0.95, 0.2, bend=0.35))
+    m.join("Machoire", mach)
+
+    for nom, s in (("Oeil_G", 1), ("Oeil_D", -1)):  # Material = Neon dans Roblox
+        m.ico(nom, "oeil_glace", (1.86 * s, -9.7, 7.32), (0.2, 0.36, 0.2), rot=(0, 0, -12 * s))
+
+
 def corne(m, s):
-    """Énorme corne en spirale : part du crâne, tourne en arrière, en bas, puis pointe vers l'avant."""
+    """Corne annelée en spirale : s'écarte de la tête, tourne en arrière, en bas, puis pointe vers l'avant."""
     pts, radii = [], []
-    n, tours = 30, 0.95
+    n, tours = 56, 0.95
     for i in range(n):
         u = i / (n - 1)
-        theta = (u * tours - 0.12) * 2 * math.pi
-        rayon = 2.3 * (1 - 0.35 * u)
-        x = (1.3 + 3.0 * u ** 0.6) * s  # s'écarte vite de la tête, puis s'enroule
-        y = -6.6 + rayon * math.sin(theta) - 0.8 * u
-        z = 6.7 + rayon * math.cos(theta)
+        theta = (u * tours - 0.02) * 2 * math.pi
+        rayon = 2.4 * (1 - 0.35 * u)
+        x = (0.9 + 3.5 * u ** 0.6) * s  # racine enfoncée dans le crâne
+        y = -6.9 + 1.3 * rayon * math.sin(theta) - 1.0 * u
+        z = 6.55 + 0.75 * rayon * math.cos(theta)
         pts.append((x, y, z))
-        radii.append(0.8 * (1 - u) + 0.12 * u)
+        anneau = 1.0 + (0.11 if i % 2 == 0 else 0.0)  # anneaux de croissance
+        radii.append((0.95 * (1 - u) + 0.1 * u) * anneau)
     radii[-1] = 0.0
-    return m.tube(f"corne{s}", "brun_noir", pts, radii, sides=6, up=(1, 0, 0))
+    return m.tube(f"corne{s}", "brun_noir", pts, radii, sides=7, ring_scale=(1.0, 0.7), up=(1, 0, 0))
 
 
 if __name__ == "__main__":
     model = build()
-    print("stats", model.stats())
+    st = model.stats()
+    print("stats", st["pieces"], "pièces,", st["triangles"], "triangles")
+    for nom, t in sorted(st["par_piece"].items()):
+        print("   ", nom, t)
     model.export()
     if "--no-render" not in sys.argv:
-        for p in lp.render_previews(model):
+        vues = ((35, "avant"), (215, "arriere"), (28, "tete", 2.4, (0, -9.5, 6.8)))
+        for p in lp.render_previews(model, views=vues):
             print("preview", p)

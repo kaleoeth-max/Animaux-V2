@@ -115,6 +115,67 @@ def _uv_for(color):
     return ((cx + 0.5) / GRID, (cy + 0.5) / GRID)
 
 
+
+# --------------------------------------------------------------------------- surfaces
+
+def zigzag(x):
+    """Onde triangulaire entre -1 et 1 (pour les motifs en zigzag)."""
+    return 2 * abs(2 * (x - math.floor(x + 0.5))) - 1
+
+
+def _frame(normal, flow):
+    """Repère (côté, sens, normale) : la normale sort de la surface, `flow` donne le sens des écailles."""
+    n = Vector(normal).normalized()
+    b = Vector(flow) - n * Vector(flow).dot(n)
+    if b.length < 1e-4:
+        b = n.orthogonal()
+    b.normalize()
+    return Matrix((b.cross(n), b, n)).transposed()
+
+
+class Ellipsoid:
+    """Ellipsoïde orienté : sert de volume de base ET de support pour poser écailles et épines.
+
+    radii = (rx, ry, rz) avec ry le long de `axis`. Paramètres de surface :
+    t dans [-1, 1] le long de l'axe, a (degrés) autour de l'axe (90 = dessus, 270 = dessous).
+    """
+
+    def __init__(self, center, radii, axis=(0, 1, 0), up=(0, 0, 1)):
+        self.c = Vector(center)
+        self.r = Vector(radii)
+        y = Vector(axis).normalized()
+        x = y.cross(Vector(up))
+        if x.length < 1e-4:
+            x = y.orthogonal()
+        x.normalize()
+        self.R = Matrix((x, y, x.cross(y))).transposed()
+
+    @staticmethod
+    def between(p1, p2, rx, rz=None, extra=1.15, up=(0, 0, 1)):
+        p1, p2 = Vector(p1), Vector(p2)
+        return Ellipsoid((p1 + p2) / 2, (rx, (p2 - p1).length / 2 * extra, rz or rx), p2 - p1, up)
+
+    def local(self, t, a):
+        s = math.sqrt(max(0.0, 1 - t * t))
+        a = math.radians(a)
+        return Vector((self.r.x * s * math.cos(a), self.r.y * t, self.r.z * s * math.sin(a)))
+
+    def point(self, t, a, lift=0.0):
+        p = self.c + self.R @ self.local(t, a)
+        return p + self.normal(t, a) * lift
+
+    def normal(self, t, a):
+        lo = self.local(t, a)
+        g = Vector((lo.x / self.r.x ** 2, lo.y / self.r.y ** 2, lo.z / self.r.z ** 2))
+        return (self.R @ g).normalized()
+
+    def axis(self):
+        return self.R.col[1].copy()
+
+    def matrix(self):
+        return Matrix.Translation(self.c) @ self.R.to_4x4() @ Matrix.Diagonal((*self.r, 1.0))
+
+
 # --------------------------------------------------------------------------- construction
 
 class Model:
@@ -244,6 +305,61 @@ class Model:
                 bm.faces.new(ring)
         return self._finish(name, bm, color)
 
+    def ellipsoid(self, name, color, ell, subdiv=1, jitter=0.0, seed=0):
+        """Volume de base d'après un Ellipsoid."""
+        bm = bmesh.new()
+        bmesh.ops.create_icosphere(bm, subdivisions=subdiv, radius=1.0, matrix=ell.matrix())
+        return self._finish(name, bm, color, jitter, seed)
+
+    def kite(self, name, color, pos, normal, flow, w, l, h, tilt=18):
+        """Écaille : pyramide losange aplatie, pointe vers `flow`, arrière soulevé de `tilt` degrés."""
+        bm = bmesh.new()
+        bmesh.ops.create_cone(bm, cap_ends=True, cap_tris=False, segments=4,
+                              radius1=1.0, radius2=0.0, depth=1.0)
+        mat = (Matrix.Translation(Vector(pos)) @ _frame(normal, flow).to_4x4()
+               @ Matrix.Rotation(math.radians(tilt), 4, "X")
+               @ Matrix.Diagonal((w / 2, l / 2, h, 1.0)) @ Matrix.Translation((0, 0.3, 0.5)))
+        bmesh.ops.transform(bm, matrix=mat, verts=bm.verts)
+        return self._finish(name, bm, color)
+
+    def spike(self, name, color, base, normal, flow, length, radius, bend=0.35, sides=5, steps=4):
+        """Épine courbe : sort selon `normal` puis se recourbe vers `flow`."""
+        n = Vector(normal).normalized()
+        f = Vector(flow) - n * Vector(flow).dot(n)
+        f = f.normalized() if f.length > 1e-4 else n.orthogonal().normalized()
+        pts, radii = [], []
+        for i in range(steps + 1):
+            u = i / steps
+            pts.append(Vector(base) + n * length * u + f * bend * length * u * u)
+            radii.append(radius * (1 - u))
+        return self.tube(name, color, pts, radii, sides=sides)
+
+    def scales(self, prefix, ell, rows, t_range, a_range, color_fn, flow, pas, h=0.22, tilt=18,
+               size=1.0, seed=0):
+        """Couvre une zone d'un Ellipsoid d'écailles qui se chevauchent (rangées décalées).
+
+        color_fn(t, a, rng) -> nom de couleur. `pas` = écart visé entre deux écailles d'une rangée.
+        """
+        rng = random.Random(f"{self.name}:{prefix}:{seed}")
+        out = []
+        t0, t1 = t_range
+        dt = (t1 - t0) / max(rows - 1, 1)
+        for i in range(rows):
+            t = t0 + dt * i
+            ring = math.sqrt(max(0.0, 1 - t * t)) * (ell.r.x + ell.r.z) / 2
+            arc = math.radians(a_range[1] - a_range[0]) * ring
+            cols = max(2, round(arc / pas))
+            da = (a_range[1] - a_range[0]) / cols
+            for k in range(cols):
+                a = a_range[0] + da * (k + 0.5 * (i % 2)) + rng.uniform(-0.15, 0.15) * da
+                tt = t + rng.uniform(-0.12, 0.12) * dt
+                w = max(math.radians(da) * ring * 1.35, 0.2) * size
+                l = max(ell.r.y * dt * 1.7, 0.25) * size
+                fl = flow if flow is not None else ell.axis()
+                out.append(self.kite(f"{prefix}{i}_{k}", color_fn(tt, a, rng), ell.point(tt, a, 0.03),
+                                     ell.normal(tt, a), fl, w, l, h * size, tilt + rng.uniform(-5, 5)))
+        return out
+
     def join(self, name, objs):
         """Fusionne plusieurs pièces en une seule (= un seul MeshPart dans Roblox)."""
         bm = bmesh.new()
@@ -287,8 +403,11 @@ class Model:
     # ----------------------------------------------------------------------- sortie
 
     def stats(self):
-        tris = sum(sum(len(p.vertices) - 2 for p in o.data.polygons) for o in self.parts)
-        return {"pieces": len(self.parts), "triangles": tris}
+        par_piece = {o.name: sum(len(p.vertices) - 2 for p in o.data.polygons) for o in self.parts}
+        trop = [n for n, t in par_piece.items() if t > 10000]
+        if trop:  # limite prudente pour un MeshPart Roblox
+            print("ATTENTION : plus de 10 000 triangles dans", trop)
+        return {"pieces": len(self.parts), "triangles": sum(par_piece.values()), "par_piece": par_piece}
 
     def export(self):
         """Exporte en FBX (texture intégrée) et GLB dans exports/<nom>/."""
@@ -377,10 +496,14 @@ def render_previews(model, views=((35, "avant"), (215, "arriere")), size=900, sa
     os.makedirs(PREVIEWS, exist_ok=True)
     paths = []
     dist = radius * 2.7
-    for angle, label in views:
+    for view in views:
+        angle, label = view[:2]
+        zoom = view[2] if len(view) > 2 else 1.0
+        cible = Vector(view[3]) if len(view) > 3 else center
         a = math.radians(angle - 90)  # 0° = face (-Y)
-        cam.location = center + Vector((math.cos(a) * dist, math.sin(a) * dist, radius * 0.9))
-        direction = center - cam.location
+        d, hauteur = dist / zoom, radius * 0.9 / zoom
+        cam.location = cible + Vector((math.cos(a) * d, math.sin(a) * d, hauteur))
+        direction = cible - cam.location
         cam.rotation_euler = direction.to_track_quat("-Z", "Y").to_euler()
         path = os.path.join(PREVIEWS, f"{model.name}_{label}.png")
         scene.render.filepath = path
