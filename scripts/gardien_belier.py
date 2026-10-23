@@ -266,8 +266,9 @@ def queue(m):
 
 CRANE = Ellipsoid((0, -8.7, 7.0), (1.9, 2.4, 1.7))
 MUSEAU = Ellipsoid((0, -10.9, 6.35), (1.35, 1.65, 0.95))
-MACHOIRE = Ellipsoid((0, -10.0, 5.0), (1.3, 2.4, 0.7), axis=(0, 1, 0.08))
+MACHOIRE = Ellipsoid((0, -9.9, 4.95), (1.4, 2.4, 0.85), axis=(0, 1, 0.08))  # mâchoire massive
 CHARNIERE = (0, -8.3, 5.5)
+OUVERTURE = 10  # gueule entrouverte au repos (degrés)
 LEVRE_HAUT = 5.75  # hauteur où les crocs du haut sortent du museau
 LEVRE_BAS = 5.45   # hauteur où les dents du bas sortent de la mâchoire
 
@@ -368,27 +369,39 @@ def tete(m):
     pieces.append(m.ellipsoid("gueule", "gueule", Ellipsoid((0, -10.0, 5.55), (1.0, 2.3, 0.4))))
     m.join("Tete", pieces)
 
-    mach = [m.ellipsoid("machoire", "rouille", MACHOIRE),
-            m.ellipsoid("menton", "rouille", Ellipsoid((0, -11.6, 4.75), (0.85, 0.75, 0.5)), jitter=0.04),
-            m.ellipsoid("gencive_bas", "gueule", Ellipsoid((0, -10.0, 5.6), (1.05, 2.2, 0.14))),
-            m.ellipsoid("langue", "truffe", Ellipsoid((0, -10.3, 5.66), (0.65, 1.6, 0.16)))]
-    # écailles sous le menton et sur les côtés de la mâchoire
-    mach += m.scales("em", MACHOIRE, 7, (-0.8, 0.75), (190, 350),
-                     lambda t, a, r: "rouille" if r.random() < 0.6 else "sable_fonce", ARRIERE, 0.45, h=0.05,
-                     tilt=2, size=0.5, seed=5)
+    mach = [m.ellipsoid("machoire", "rouille", MACHOIRE, jitter=0.04),
+            m.ellipsoid("menton", "rouille", Ellipsoid((0, -11.45, 4.7), (0.95, 0.65, 0.6)), jitter=0.05),
+            m.ellipsoid("gencive_bas", "gueule", Ellipsoid((0, -10.0, 5.72), (1.1, 2.3, 0.12))),
+            m.ellipsoid("langue", "truffe", Ellipsoid((0, -10.3, 5.78), (0.65, 1.6, 0.14)))]
+    plaque = lambda t, a, r: ("sable", "sable_fonce", "rouille")[r.randrange(3)]  # noqa: E731
     for s in (1, -1):
-        # dents du bas : décalées d'une demi-dent par rapport à celles du haut (elles s'emboîtent)
+        # angle de la mâchoire, sous la joue
+        mach.append(m.ellipsoid(f"angle{s}", "sable_fonce", Ellipsoid((1.05 * s, -8.4, 5.0), (0.6, 1.0, 0.75)),
+                                jitter=0.04, seed=6))
+        # grandes plaques d'armure sur le côté de la mâchoire
+        cote = (-40, 25) if s > 0 else (155, 220)
+        mach += m.scales(f"pj{s}", MACHOIRE, 4, (-0.8, 0.7), cote, plaque, ARRIERE, 0.75, h=0.12, tilt=8,
+                         seed=7 + s)
+        # frange d'écailles pointues qui pend sous la mâchoire (de plus en plus longue vers la gorge)
+        for k in range(9):
+            y = -11.4 + 0.4 * k
+            t = (y - MACHOIRE.c.y) / MACHOIRE.r.y
+            a = 300 if s > 0 else 240
+            mach.append(m.spike(f"frange{k}{s}", ("sable_fonce", "rouille", "sable")[k % 3],
+                                MACHOIRE.point(t, a), MACHOIRE.normal(t, a) + Vector((0, 0.9, -0.3)), ARRIERE,
+                                0.55 + 0.07 * k, 0.2, bend=0.3, sides=4))
+        # grosses dents du bas sur le bord, bien visibles, emboîtées entre celles du haut
         for k in range(10):
             y = -8.75 - 0.3 * k
-            base = (s * bord(MACHOIRE, y, LEVRE_BAS), y, LEVRE_BAS - 0.08)
+            base = (s * bord(MACHOIRE, y, LEVRE_BAS, 0.86), y, LEVRE_BAS - 0.08)
             assert MACHOIRE.inside(base), "chaque dent du bas doit partir de la mâchoire"
-            mach.append(m.spike(f"dent{k}{s}", "dent", base, (0.1 * s, -0.05, 1), (0, -1, 0),
-                                0.42 if k % 2 else 0.28, 0.13 if k % 2 else 0.1, bend=0.1, sides=4, steps=1))
+            mach.append(m.spike(f"dent{k}{s}", "dent", base, (0.28 * s, -0.05, 1), (0, -1, 0),
+                                0.68 if k % 2 else 0.45, 0.16 if k % 2 else 0.12, bend=0.12, sides=4, steps=1))
         # lèvre du bas
         z = LEVRE_BAS + 0.1
         avant = MACHOIRE.c.y - MACHOIRE.r.y * math.sqrt(max(0.0, 1 - ((z - MACHOIRE.c.z) / MACHOIRE.r.z) ** 2))
         mach.append(m.tube(f"levre_bas{s}", "brun_noir",
-                           [(s * bord(MACHOIRE, y, z, 1.0), y, z) for y in [-8.4 - 0.3 * k for k in range(10)]
+                           [(s * bord(MACHOIRE, y, z, 0.98), y, z) for y in [-8.4 - 0.3 * k for k in range(11)]
                             if y > avant + 0.15] + [(0.25 * s, avant + 0.05, z)], 0.07, sides=5))
         # défenses : sortent du bord de la mâchoire et remontent le long du museau, côté extérieur
         base = (s * bord(MACHOIRE, -11.0, 5.2, 0.7), -11.0, 5.2)  # plantée DANS la mâchoire
@@ -397,7 +410,7 @@ def tete(m):
                             bend=0.3))
     machoire = m.join("Machoire", mach)
     # gueule entrouverte : la mâchoire pivote autour de la charnière
-    m.rotate_about([machoire], 14, "X", CHARNIERE)
+    m.rotate_about([machoire], OUVERTURE, "X", CHARNIERE)
 
     # iris lumineux (Material = Neon dans Roblox)
     for nom, s in (("Oeil_G", 1), ("Oeil_D", -1)):

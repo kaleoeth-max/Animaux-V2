@@ -25,7 +25,7 @@ Sorties :
 
 | Gardien | Rôle | Taille (studs) | Pièces | Triangles |
 |---|---|---|---|---|
-| **Bélier Colosse** (`Gardien_Prairie_Belier`) | tank / boss — bête couverte d'écailles, pattes à frange d'écailles et grands pieds griffus, longue gueule à crocs, cornes annelées | ≈ 11 × 33 × 14 (haut) | 12 | ~20 800 (max ~4 100 par pièce) |
+| **Bélier Colosse** (`Gardien_Prairie_Belier`) | tank / boss — bête couverte d'écailles, pattes à frange d'écailles et grands pieds griffus, longue gueule à crocs et mâchoire massive à plaques, cornes annelées | ≈ 11 × 33 × 14 (haut) | 12 | ~21 200 (max ~4 100 par pièce) |
 | **Grand Lièvre Sentinelle** (`Gardien_Prairie_Lievre`) | vigie, rapide — style « blocs » chibi | ≈ 7 × 6 × 16 (haut) | 10 | ~2200 |
 
 ![Bélier](previews/Gardien_Prairie_Belier_avant.png)
@@ -49,18 +49,15 @@ aux os ; la queue et les pattes se plient en douceur. Les pieds restent posés a
 
 | Animation | Durée | Boucle | Aperçu |
 |---|---|---|---|
-| `Repos` | 2,0 s | oui | respiration, tête qui scrute, queue qui ondule |
 | `Marche` | 1,3 s | oui | pas en diagonale sur place (~4,5 studs/s) |
-| `Morsure` | 1,2 s | non | recul, gueule grande ouverte, attaque, claquement |
-| `Rugissement` | 2,5 s | non | tête levée, gueule ouverte au maximum, tremblement |
-| `CoupDeQueue` | 1,4 s | non | le corps pivote, la queue balaie |
 | `Course` | 0,7 s | oui | galop, grandes foulées (~11,5 studs/s) |
 | `Sommeil` | 3,0 s | oui | couché en sphinx, yeux fermés, queue enroulée, respiration lente |
+| `CoupDeCroc` | 1,2 s | non | recul, gueule grande ouverte, attaque, claquement |
 
 ![Marche](previews/Gardien_Prairie_Belier_anim_Marche.gif)
 ![Course](previews/Gardien_Prairie_Belier_anim_Course.gif)
 ![Sommeil](previews/Gardien_Prairie_Belier_anim_Sommeil.gif)
-![Rugissement](previews/Gardien_Prairie_Belier_anim_Rugissement.gif)
+![Coup de croc](previews/Gardien_Prairie_Belier_anim_CoupDeCroc.gif)
 
 Fichiers (dans `exports/Gardien_Prairie_Belier/`) :
 - `Gardien_Prairie_Belier_rig.fbx` : modèle + squelette.
@@ -70,12 +67,12 @@ Fichiers (dans `exports/Gardien_Prairie_Belier/`) :
 Dans Roblox Studio (pas encore testé de bout en bout) :
 1. Importer `Gardien_Prairie_Belier_rig.fbx` avec l'importeur 3D (le modèle arrive avec ses os).
 2. Ouvrir l'**Animation Editor** sur le modèle, puis `…` > *Import* > *From FBX Animation* et choisir
-   `Gardien_Prairie_Belier_Marche.fbx` (recommencer pour chaque animation). Cocher la boucle pour `Repos` et `Marche`,
+   `Gardien_Prairie_Belier_Marche.fbx` (recommencer pour chaque animation). Cocher la boucle pour `Marche`, `Course` et `Sommeil`,
    puis publier chaque animation pour obtenir son ID.
 3. Mettre `roblox/GardienBelier_Animations.server.lua` dans le modèle et coller les ID en haut du script.
-   Le script joue `Repos`, passe à `Marche` quand le gardien bouge puis à `Course` au-delà de 8 studs/s,
-   lance une attaque avec `gardien:SetAttribute("Action", "Morsure")` (ou `"Rugissement"`, `"CoupDeQueue"`)
-   et le fait dormir avec `gardien:SetAttribute("Dort", true)` (`false` pour le réveiller).
+   Le script joue `Marche` quand le gardien bouge puis `Course` au-delà de 8 studs/s (à l'arrêt il garde sa pose),
+   lance le coup de croc avec `gardien:SetAttribute("Action", "CoupDeCroc")` et le fait dormir avec
+   `gardien:SetAttribute("Dort", true)` (`false` pour le réveiller).
 
 Les pièces `Paupiere_G` / `Paupiere_D` sont cachées dans la tête : seule l'animation `Sommeil` les fait sortir.
 

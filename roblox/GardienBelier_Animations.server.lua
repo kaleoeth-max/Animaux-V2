@@ -7,11 +7,10 @@
 	Avant : publier chaque animation depuis l'Animation Editor et coller les ID ci-dessous.
 
 	Ce que fait le script :
-	  - joue « Repos » en boucle ;
-	  - passe à « Marche » quand le modèle se déplace, puis à « Course » quand il va vite
-	    (vitesse de l'animation adaptée à la vitesse réelle) ;
-	  - joue une attaque quand un autre script fait :
-	        gardien:SetAttribute("Action", "Morsure")      -- ou "Rugissement", "CoupDeQueue"
+	  - joue « Marche » quand le modèle se déplace, puis « Course » quand il va vite
+	    (vitesse de l'animation adaptée à la vitesse réelle) ; à l'arrêt il garde sa pose ;
+	  - joue le coup de croc quand un autre script fait :
+	        gardien:SetAttribute("Action", "CoupDeCroc")
 	  - le fait dormir / le réveille :
 	        gardien:SetAttribute("Dort", true)   -- puis false pour le réveiller
 ]]
@@ -21,13 +20,10 @@ local RunService = game:GetService("RunService")
 local modele = script.Parent
 
 local IDS = {
-	Repos = "rbxassetid://0",
 	Marche = "rbxassetid://0",
-	Morsure = "rbxassetid://0",
-	Rugissement = "rbxassetid://0",
-	CoupDeQueue = "rbxassetid://0",
 	Course = "rbxassetid://0",
 	Sommeil = "rbxassetid://0",
+	CoupDeCroc = "rbxassetid://0",
 }
 
 -- vitesses (studs/s) auxquelles les animations tournent à vitesse normale
@@ -55,20 +51,14 @@ for nom, id in pairs(IDS) do
 	pistes[nom] = animateur:LoadAnimation(animation)
 end
 
-pistes.Repos.Looped = true
-pistes.Repos.Priority = Enum.AnimationPriority.Idle
 pistes.Marche.Looped = true
 pistes.Marche.Priority = Enum.AnimationPriority.Movement
 pistes.Course.Looped = true
 pistes.Course.Priority = Enum.AnimationPriority.Movement
 pistes.Sommeil.Looped = true
 pistes.Sommeil.Priority = Enum.AnimationPriority.Action
-for _, nom in ipairs({ "Morsure", "Rugissement", "CoupDeQueue" }) do
-	pistes[nom].Looped = false
-	pistes[nom].Priority = Enum.AnimationPriority.Action
-end
-
-pistes.Repos:Play()
+pistes.CoupDeCroc.Looped = false
+pistes.CoupDeCroc.Priority = Enum.AnimationPriority.Action2
 
 -- joue une seule des deux allures (ou aucune) et arrête l'autre
 local function allure(active, vitesseAnim)
@@ -110,7 +100,7 @@ modele:GetAttributeChangedSignal("Dort"):Connect(function()
 	end
 end)
 
--- attaques déclenchées par un attribut
+-- coup de croc déclenché par un attribut
 modele:GetAttributeChangedSignal("Action"):Connect(function()
 	local action = modele:GetAttribute("Action")
 	if action == nil then

@@ -1,13 +1,10 @@
 """Animations du Bélier Colosse : squelette, liaison des pièces aux os, 5 animations, export Roblox.
 
 Animations (30 images/s, sur place) :
-  Repos         2,0 s en boucle : respiration, tête qui scrute, queue qui ondule
-  Marche        1,3 s en boucle : pas en diagonale, corps qui tangue, queue qui balance
-  Morsure       1,2 s           : recul, gueule grande ouverte, attaque vers l'avant, claquement
-  Rugissement   2,5 s           : tête levée, gueule ouverte au maximum, tête qui tremble
-  CoupDeQueue   1,4 s           : le corps pivote et la queue balaie de côté
+  Marche        1,3 s en boucle : pas en diagonale, corps qui tangue, queue qui balance (~4,5 studs/s)
   Course        0,7 s en boucle : galop, grandes foulées (~11,5 studs/s)
   Sommeil       3,0 s en boucle : couché en sphinx, yeux fermés, queue enroulée, respiration lente
+  CoupDeCroc    1,2 s           : recul, gueule grande ouverte, attaque vers l'avant, claquement
 
 Sorties dans exports/Gardien_Prairie_Belier/ :
   Gardien_Prairie_Belier_rig.fbx        modèle + squelette (à importer dans Roblox)
@@ -239,16 +236,6 @@ def queue_ondule(pose, u, ampl, decal=0.7, montee=0.0):
         pose[f"Queue{i + 1}"] = ((montee, 0, ampl * (1 + 0.3 * i) * math.sin(TAU * u - decal * i)), (0, 0, 0))
 
 
-def anim_repos(u):
-    pose = {
-        "Torse": ((1.2 * math.sin(TAU * u), 0, 0), (0, 0, 0.08 * math.sin(TAU * u))),
-        "Tete": ((2 * math.sin(2 * TAU * u) - 1.2 * math.sin(TAU * u), 0, 9 * math.sin(TAU * u)), (0, 0, 0)),
-        "Machoire": ((-7 + 4 * math.sin(TAU * u + 1), 0, 0), (0, 0, 0)),
-    }
-    queue_ondule(pose, u, 5)
-    return ik_pattes(pose)
-
-
 def anim_marche(u):
     pose = {
         "Torse": ((0, 2.5 * math.sin(TAU * u), 0), (0, 0, 0.14 * math.cos(2 * TAU * u))),
@@ -267,9 +254,9 @@ def anim_marche(u):
     return ik_pattes(pose, cibles, pointe)
 
 
-def anim_morsure(u):
+def anim_coup_de_croc(u):
     tete = cles(u, [(0, 0), (0.3, -20), (0.45, 16), (0.55, 14), (1, 0)])
-    mach = cles(u, [(0, 0), (0.3, 18), (0.42, 22), (0.5, -14), (0.62, -14), (1, 0)])
+    mach = cles(u, [(0, 0), (0.3, 18), (0.42, 22), (0.5, -g.OUVERTURE), (0.62, -g.OUVERTURE), (1, 0)])
     avance = cles(u, [(0, 0), (0.3, 0.5), (0.45, -1.0), (0.6, -1.0), (1, 0)])
     pique = cles(u, [(0, 0), (0.3, -4), (0.45, 6), (0.6, 6), (1, 0)])
     pose = {
@@ -278,31 +265,6 @@ def anim_morsure(u):
         "Machoire": ((mach, 0, 0), (0, 0, 0)),
     }
     queue_ondule(pose, u, 6, montee=cles(u, [(0, 0), (0.45, 6), (1, 0)]))
-    return ik_pattes(pose)
-
-
-def anim_rugissement(u):
-    leve = cles(u, [(0, 0), (0.25, 1), (0.8, 1), (1, 0)])
-    tremble = math.sin(TAU * u * 9) * cles(u, [(0, 0), (0.3, 1), (0.75, 1), (0.85, 0), (1, 0)])
-    pose = {
-        "Torse": ((-4 * leve, 0, 0), (0, 0.3 * leve, 0)),
-        "Tete": ((-28 * leve + 2 * tremble, 0, 5 * tremble), (0, 0, 0)),
-        "Machoire": ((30 * leve, 0, 0), (0, 0, 0)),
-    }
-    queue_ondule(pose, u, 4, montee=8 * leve)
-    return ik_pattes(pose)
-
-
-def anim_coup_de_queue(u):
-    balai = cles(u, [(0, 0), (0.3, -1), (0.55, 1.2), (0.75, 1.0), (1, 0)])
-    pose = {
-        "Torse": ((0, 0, 4 * balai), (0, 0, 0)),
-        "Tete": ((0, 0, -18 * balai), (0, 0, 0)),
-        "Machoire": ((cles(u, [(0, 0), (0.45, 10), (1, 0)]), 0, 0), (0, 0, 0)),
-    }
-    for i in range(4):
-        retard = cles(u - 0.04 * i, [(0, 0), (0.3, -1), (0.55, 1.2), (0.75, 1.0), (1, 0)])
-        pose[f"Queue{i + 1}"] = ((6 * abs(retard), 0, 22 * retard * (1 + 0.25 * i)), (0, 0, 0))
     return ik_pattes(pose)
 
 
@@ -330,7 +292,7 @@ def anim_sommeil(u):
     pose = {
         "Torse": ((2 + 1.2 * souffle, 0, 0), (0, 0.2, -2.3 + 0.1 * souffle)),
         "Tete": ((10 + 1.0 * souffle, 0, -12), (0, 0, 0)),
-        "Machoire": ((-14 + 1.5 * max(0.0, souffle), 0, 0), (0, 0, 0)),  # gueule fermée, petit ronflement
+        "Machoire": ((-g.OUVERTURE + 1.5 * max(0.0, souffle), 0, 0), (0, 0, 0)),  # gueule fermée, petit ronflement
     }
     for cote, sg in (("G", 1), ("D", -1)):
         n = g.repere_oeil(sg)[1]
@@ -343,13 +305,10 @@ def anim_sommeil(u):
 
 
 ANIMATIONS = [  # (nom, durée en images, fonction, boucle)
-    ("Repos", 60, anim_repos, True),
     ("Marche", 40, anim_marche, True),
-    ("Morsure", 36, anim_morsure, False),
-    ("Rugissement", 75, anim_rugissement, False),
-    ("CoupDeQueue", 42, anim_coup_de_queue, False),
     ("Course", 22, anim_course, True),
     ("Sommeil", 90, anim_sommeil, True),
+    ("CoupDeCroc", 36, anim_coup_de_croc, False),
 ]
 
 
