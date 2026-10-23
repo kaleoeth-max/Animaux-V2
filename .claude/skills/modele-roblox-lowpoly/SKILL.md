@@ -6,7 +6,7 @@ description: Crée ou modifie un modèle 3D low poly pour les jeux Roblox de ce 
 # Modèle 3D low poly pour Roblox (Blender headless)
 
 Méthode mise au point sur le **Bélier Colosse** (gardien de la zone Prairie, validé par l'utilisateur,
-commit `59db35f`), puis réutilisée pour le **Rat Ravageur** (zone Champ). Références : `scripts/gardien_belier.py`
+commit `59db35f`), puis réutilisée pour le **Rat Ravageur** (zone Champ, validé, commit `d37058e`). Références : `scripts/gardien_belier.py`
 et `scripts/gardien_rat.py` (modèles), `lib/animation.py` (squelette + animations, commun à tous) et les petits
 modules `scripts/animations_<modele>.py`. Pour un nouveau quadrupède, copier `gardien_rat.py` (le plus récent)
 et l'adapter.
