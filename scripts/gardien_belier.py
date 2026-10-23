@@ -54,8 +54,7 @@ def build():
     lp.reset_scene()
     m = lp.Model(NAME)
     corps(m)
-    for nom, x, y, avant in (("AvG", 2.9, -3.4, True), ("AvD", -2.9, -3.4, True),
-                             ("ArG", 2.7, 4.4, False), ("ArD", -2.7, 4.4, False)):
+    for nom, x, y, avant in PATTES:
         patte(m, nom, x, y, avant)
     queue(m)
     tete(m)
@@ -110,14 +109,26 @@ def couleur_patte(t, a, rng):
     return "sable_fonce" if rng.random() < 0.3 else "sable"
 
 
+PATTES = (("AvG", 2.9, -3.4, True), ("AvD", -2.9, -3.4, True),
+          ("ArG", 2.7, 4.4, False), ("ArD", -2.7, 4.4, False))
+
+
+def articulations(x, y, avant):
+    """Points d'articulation d'une patte, du haut vers le pied (servent aussi au squelette d'animation)."""
+    s = 1 if x > 0 else -1
+    if avant:  # épaule, coude (replié en arrière), poignet
+        return [Vector((x, y, 6.3)), Vector((x + 0.6 * s, y + 0.9, 3.6)), Vector((x + 0.75 * s, y - 0.2, 1.25))]
+    # hanche, genou (vers l'avant), jarret (replié en arrière), cheville
+    return [Vector((x, y, 6.1)), Vector((x + 0.5 * s, y - 1.1, 3.9)), Vector((x + 0.7 * s, y + 0.9, 1.9)),
+            Vector((x + 0.75 * s, y, 1.0))]
+
+
 def patte(m, nom, x, y, avant):
     """Patte de bête : avant = épaule / coude replié en arrière / poignet,
     arrière = grosse cuisse / genou vers l'avant / jarret replié en arrière."""
     s = 1 if x > 0 else -1
     if avant:
-        haut_ = Vector((x, y, 6.3))
-        milieu = Vector((x + 0.6 * s, y + 0.9, 3.6))     # coude
-        poignet = Vector((x + 0.75 * s, y - 0.2, 1.25))
+        haut_, milieu, poignet = articulations(x, y, avant)
         epaule = Ellipsoid((x + 0.1 * s, y, 6.0), (1.6, 1.9, 2.1))
         biceps = Ellipsoid.between(haut_, milieu, 1.3, 1.4, extra=1.05, up=(0, 1, 0))
         pieces = [m.ellipsoid("epaule", "sable_fonce", epaule), m.ellipsoid("biceps", "sable_fonce", biceps)]
@@ -126,10 +137,7 @@ def patte(m, nom, x, y, avant):
                            seed=1)
         segments = [(milieu, poignet, [1.05, 0.95, 0.72], "rouille")]
     else:
-        haut_ = Vector((x, y, 6.1))
-        milieu = Vector((x + 0.5 * s, y - 1.1, 3.9))     # genou
-        jarret = Vector((x + 0.7 * s, y + 0.9, 1.9))
-        poignet = Vector((x + 0.75 * s, y, 1.0))
+        haut_, milieu, jarret, poignet = articulations(x, y, avant)
         cuisse = Ellipsoid((x + 0.2 * s, y - 0.2, 5.2), (1.75, 2.3, 2.3))
         pieces = [m.ellipsoid("cuisse", "sable_fonce", cuisse)]
         pieces += m.scales("ec", cuisse, 6, (-0.85, 0.85), (-90, 270), couleur_corps, Vector((0, 0.5, -1)), 0.85,
@@ -182,9 +190,12 @@ def patte(m, nom, x, y, avant):
 
 # ---------------------------------------------------------------------------- queue
 
+QUEUE = [Vector(p) for p in ((0, 6.6, 6.0), (0, 9.4, 5.2), (0.4, 12.2, 4.3), (0.9, 14.8, 3.6),
+                             (0.7, 17.3, 3.1), (0.2, 19.6, 2.8))]
+
+
 def queue(m):
-    chemin = [Vector(p) for p in ((0, 6.6, 6.0), (0, 9.4, 5.2), (0.4, 12.2, 4.3), (0.9, 14.8, 3.6),
-                                  (0.7, 17.3, 3.1), (0.2, 19.6, 2.8))]
+    chemin = QUEUE
     rayons = [1.75, 1.4, 1.05, 0.75, 0.42, 0.0]
     pieces = [m.tube("queue", "sable_fonce", chemin, rayons, sides=7, ring_scale=(1.0, 0.85))]
     rng = random.Random("queue")
