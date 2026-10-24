@@ -73,6 +73,9 @@ PALETTE = {
     "ronce_fonce": (58, 32, 66),
     "mure": (36, 22, 48),
     "oeil_violet": (206, 96, 255),
+    "tige_ronce": (124, 52, 70),
+    "feuille_rouge": (156, 62, 46),
+    "mure_rouge": (186, 36, 52),
 }
 
 GRID = 8          # 8 x 8 cases

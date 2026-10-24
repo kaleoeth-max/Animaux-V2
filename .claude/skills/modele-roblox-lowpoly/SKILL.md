@@ -91,8 +91,16 @@ Paramètres de surface d'un Ellipsoid : `t` ∈ [-1, 1] le long de l'axe, `a` en
 - **Poils (rat)** : mèches couchées, `souleve` ≈ 0,05–0,12 (au-delà de ~0,25 ça fait hérisson), plus courtes et
   plus rases sur la tête et le museau ; couleur d'accent en **fines traînées** seulement (sinon on dirait de l'herbe).
   La fourrure coûte plus cher en triangles que les écailles (~7 500 pour le corps du rat) : surveiller `m.stats()`.
-- **Ronces / lianes enroulées** (loup) : `spirale(ell, ...)` + `ronce(...)` dans `gardien_loup.py` ; les poser
-  avec `lift` ≈ 0,25 au-dessus des poils (trop haut = cerceaux qui flottent, trop bas = invisibles sous la fourrure).
+- **Ne pas faire « pareil que les autres »** : l'utilisateur a refusé un loup trop proche du Bélier et du Rat
+  (même fourrure partout, même crête d'épines, même gueule en zigzag). Chaque gardien doit avoir son **style de
+  surface** (Bélier : écailles ; Rat : fourrure ; Loup : volumes lisses à facettes + marques + touffes `touffe()` en
+  dents de scie aux endroits typiques), sa propre **dentition** (loup : incisives, grands crocs, petites dents
+  triangulaires) et son propre **motif sur le dos** (loup : tiges de ronces en arc au lieu d'une crête).
+- **Ronces réalistes** (loup, `gardien_loup.py`) : `ronce()` = tige effilée (bois `ronce_fonce` puis pousse
+  `tige_ronce`), épines crochues vers la base tous les ~0,3 stud, `feuille_trifoliee()`, `mure()` (grappe de
+  drupéoles noires ou rouges), `fleur()`. Tiges du dos avec `tige_en_arc()` : elles doivent retomber **dans le vide
+  sur le côté** (sinon on dirait des arceaux de croquet) ; enroulements avec `enroulement()` (pas et écart
+  irréguliers, jamais une spirale parfaite), `lift` ≈ 0,1–0,25 au-dessus de la surface.
 - **Longues pattes** (loup) : au repos, garder le coude bien replié ; une patte presque tendue n'a plus de réserve
   quand le corps se cabre au galop (le vérificateur le signale : écart cheville/cible > 0,15).
 - **Pattes de rat** : mains à paume rose, 4 doigts à jointures + petit pouce ; pieds arrière longs posés à plat
