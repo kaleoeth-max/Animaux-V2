@@ -8,6 +8,12 @@ pose de sommeil, amplitude du coup de croc. Régler ces valeurs jusqu'à ce que 
 (ex. pour le rat, tête basse : `croc_tete=2`, `croc_pique=1.5` sinon la mâchoire plonge dans le sol ;
 pattes courtes : `pas_course=1.55` sinon les chevilles n'atteignent plus leur cible).
 
+**Sommeil roulé en boule** (loup) : `sommeil="boule"` dans `ANIM` + `boule_avant`, `boule_arriere` (pieds),
+`boule_tete`, `boule_queue` (un angle par os de queue : fort à la base puis plus faible, sinon la queue fait un grand
+arc loin du corps), `boule_roulis`, `boule_lacet` (garder petit : le lacet du torse fait glisser les pattes avant de
+côté). Pattes arrière : les ramener loin sous le ventre (`boule_arriere` ≈ -2,6) sinon la hanche est trop près du
+jarret et la patte ne peut plus se plier. Le torse n'a qu'un os : on obtient un croissant, pas une boule parfaite.
+
 ## 1. Squelette
 
 - Os créés en mode édition à partir des **points du modèle** (exposés par le script du modèle) :

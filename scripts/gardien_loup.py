@@ -43,7 +43,11 @@ ANIM = dict(
     torse=((0, 3.8, 7.5), (0, -4.8, 7.6)), tete=((0, -6.8, 8.9), (0, -12.5, 8.6)), machoire_bout=(0, -12.1, 7.3),
     pieces_torse=("Corps", "Ronces"),
     pas_marche=1.7, leve_marche=0.9, pas_course=2.0, leve_course=1.2,
-    couche=-3.6, tete_couche=14, avant_couche=(-1.2, 0.0),
+    couche=-3.85, tete_couche=34, avant_couche=(-1.2, 0.0),
+    # sommeil roulé en boule
+    # (la queue tourne fort à la base puis longe le flanc, la tête vient se poser du même côté)
+    sommeil="boule", boule_avant=(0.3, 0.0), boule_arriere=(-2.6, 0.0), boule_tete=85, boule_queue=(75, 55, 30, 20),
+    boule_roulis=7, boule_lacet=-5, boule_queue_monte=12,
 )
 
 
@@ -92,6 +96,21 @@ def touffes_sur(m, nom, ell, positions, sens, nb, longueur, largeur, couleurs_fn
         pieces += touffe(m, f"{nom}{i}_", ell.point(t, a, -0.05), n, sv, nb, longueur, largeur, couleurs_fn(t, a),
                          ecart, i, souleve)
     return pieces
+
+
+def grille(t0, t1, nt, a0, a1, na):
+    """Positions (t, a) réparties sur une zone d'Ellipsoid, rangées décalées en quinconce."""
+    pos = []
+    for i in range(nt):
+        t = t0 + (t1 - t0) * i / max(nt - 1, 1)
+        for k in range(na):
+            pos.append((t, a0 + (a1 - a0) * (k + 0.5 * (i % 2)) / na))
+    return pos
+
+
+def arriere_et_bas(n):
+    """Sens du poil : vers l'arrière, un peu vers le bas, en s'écartant légèrement du corps."""
+    return Vector((0, 1, -0.35)) + n * 0.2
 
 
 def pelage(t, a):
@@ -225,9 +244,10 @@ def ronces_du_corps(m):
                                               (0.6, 1.3, 1.0, 0.5, 3.3, 1.8), (-0.5, 2.9, -1.0, 0.6, 3.0, 2.3),
                                               (0.1, 0.4, 0.3, 1.0, 2.6, 3.2))):
         depart = Vector((x, y, dessus(x, y) - 0.35))
+        pieces.append(m.ico(f"noeud{i}", "ronce_fonce", depart + HAUT * 0.25, (0.32, 0.32, 0.4), jitter=0.04, seed=i))
         pieces += ronce(m, f"r_dos{i}", tige_en_arc(depart, (sx, sy, 0), L, H, i), 10 + i, rayon=0.12)
     # collier de ronces au cou, lâche et irrégulier
-    pieces += ronce(m, "r_cou", enroulement(COU, -0.5, 0.55, 40, 690, 3, n=44, lift=0.18), 3, rayon=0.15,
+    pieces += ronce(m, "r_cou", enroulement(COU, -0.5, 0.55, 40, 690, 3, n=44, lift=0.3), 3, rayon=0.15,
                     feuilles=1.6, fruits=2.6)
     m.join("Ronces", pieces)
 
@@ -242,18 +262,22 @@ def corps(m):
               m.ellipsoid("ventre", "gris_bleu_clair", VENTRE, jitter=0.05, seed=5),
               m.ellipsoid("selle", "gris_bleu_fonce", SELLE, jitter=0.05, seed=6),
               m.ellipsoid("plastron", "gris_bleu_clair", PLASTRON, jitter=0.05, seed=7)]
-    # crinière : couronne de grandes touffes autour du cou, vers l'arrière et le bas
+    # fourrure en grandes touffes (comme la queue) sur tout le corps : sombre dessus, claire dessous
+    pieces += touffes_sur(m, "pc", COU, grille(-0.85, 0.75, 5, -90, 270, 9), arriere_et_bas, 3, 1.9, 0.3, pelage,
+                          0.4, souleve=0.35)
+    pieces += touffes_sur(m, "pp", POITRAIL, grille(-0.9, 0.7, 6, -90, 270, 11), arriere_et_bas, 3, 1.7, 0.3, pelage,
+                          0.4, souleve=0.32)
+    pieces += touffes_sur(m, "pd", DOS, grille(-0.8, 0.8, 6, -90, 270, 10), arriere_et_bas, 3, 1.7, 0.28, pelage,
+                          0.4, souleve=0.32)
+    pieces += touffes_sur(m, "ph", HANCHES, grille(-0.5, 0.95, 5, -90, 270, 10), arriere_et_bas, 3, 1.7, 0.28, pelage,
+                          0.4, souleve=0.32)
+    # crinière plus longue autour du cou, plastron clair et frange sous le ventre
     pieces += touffes_sur(m, "crin", COU, [(t, a) for t in (0.15, 0.55) for a in range(-80, 280, 30)],
-                          lambda n: Vector((0, 1, -0.35)) + n * 0.25, 4, 2.1, 0.3, pelage, 0.45, souleve=0.45)
-    # plastron : touffes claires qui pendent devant le poitrail
+                          lambda n: Vector((0, 1, -0.35)) + n * 0.25, 3, 2.3, 0.32, pelage, 0.45, souleve=0.45)
     pieces += touffes_sur(m, "plas", PLASTRON, [(t, a) for t in (-0.5, 0.0, 0.45) for a in (245, 270, 295)],
-                          Vector((0, 0.15, -1)), 4, 1.8, 0.26, lambda t, a: ("gris_bleu_clair",), 0.35, souleve=0.4)
-    # frange sous le ventre
-    pieces += touffes_sur(m, "vent", VENTRE, [(t, 270) for t in (-0.6, -0.2, 0.2, 0.6)], Vector((0, 0.6, -1)), 3, 1.1,
-                          0.2, lambda t, a: ("gris_bleu_clair",), 0.4, souleve=0.3)
-    # quelques touffes sombres le long de l'échine, entre les ronces
-    pieces += touffes_sur(m, "echine", DOS, [(t, 90) for t in (-0.7, -0.2, 0.3, 0.75)], ARRIERE, 3, 1.0, 0.22,
-                          lambda t, a: ("gris_bleu_fonce",), 0.25, souleve=0.5)
+                          Vector((0, 0.15, -1)), 3, 1.9, 0.28, lambda t, a: ("gris_bleu_clair",), 0.35, souleve=0.4)
+    pieces += touffes_sur(m, "vent", VENTRE, [(t, 270) for t in (-0.6, -0.2, 0.2, 0.6)], Vector((0, 0.6, -1)), 3, 1.3,
+                          0.22, lambda t, a: ("gris_bleu_clair",), 0.4, souleve=0.3)
     m.join("Corps", pieces)
 
 
@@ -282,6 +306,10 @@ def patte(m, nom, x, y, avant):
         bras = Ellipsoid.between(haut_, milieu, 1.0, 1.1, extra=1.08, up=(0, 1, 0))
         pieces = [m.ellipsoid("epaule", "gris_bleu", epaule, jitter=0.05, seed=1),
                   m.ellipsoid("bras", "gris_bleu", bras, jitter=0.04, seed=2)]
+        pieces += touffes_sur(m, "te", epaule, grille(-0.8, 0.8, 4, -90, 270, 7), lambda n: Vector((0, 0.5, -1)) + n * 0.2,
+                              3, 1.4, 0.24, pelage, 0.3, souleve=0.3)
+        pieces += touffes_sur(m, "tb", bras, grille(-0.7, 0.6, 3, 0, 360, 6), lambda n: Vector((0, 0.4, -1)) + n * 0.2,
+                              2, 1.1, 0.2, pelage, 0.2, souleve=0.3)
         segments = [(milieu, poignet, [0.68, 0.6, 0.52])]
         # touffe derrière le coude
         pieces += touffe(m, "coude", milieu + Vector((0.1 * s, 0.55, 0.2)), (0.3 * s, 1, 0), (0, 0.6, -1), 4, 1.2, 0.2,
@@ -291,6 +319,8 @@ def patte(m, nom, x, y, avant):
         cuisse = Ellipsoid((x + 0.15 * s, y - 0.3, 6.3), (1.35, 2.1, 2.2))
         pieces = [m.ellipsoid("cuisse", "gris_bleu", cuisse, jitter=0.05, seed=1)]
         segments = [(milieu, jarret, [0.72, 0.6, 0.48]), (jarret, poignet, [0.5, 0.46, 0.46])]
+        pieces += touffes_sur(m, "tcu", cuisse, grille(-0.85, 0.85, 5, -90, 270, 8),
+                              lambda n: Vector((0, 0.6, -1)) + n * 0.2, 3, 1.5, 0.26, pelage, 0.35, souleve=0.3)
         # culotte : longues touffes à l'arrière de la cuisse
         pieces += touffes_sur(m, "culotte", cuisse, [(0.55, a) for a in ((10, 200) if s < 0 else (-20, 170))[:1]]
                               + [(0.7, 120 if s > 0 else 60), (0.85, 90)],
@@ -345,7 +375,7 @@ def queue(m):
                               lambda n, d=d: d + n * 0.35, 3, 1.8 + 0.3 * (i in (1, 2, 3)), 0.28,
                               (lambda t, a: ("gris_bleu_fonce",)) if bout else pelage, 0.35, souleve=0.35)
     lien = Ellipsoid.between(QUEUE[0], QUEUE[2], 0.62, extra=1.0)
-    pieces += ronce(m, "r_queue", enroulement(lien, -0.8, 0.8, 0, 560, 40, n=26, lift=0.25), 40, rayon=0.1,
+    pieces += ronce(m, "r_queue", enroulement(lien, -0.8, 0.8, 0, 560, 40, n=26, lift=0.3), 40, rayon=0.1,
                     feuilles=1.4, fruits=2.2)
     m.join("Queue", pieces)
 
@@ -386,6 +416,8 @@ def tete(m):
             x = bord(MUSEAU, y, 8.85, 0.97)
             pieces.append(m.tube(f"pli{k}{s}", "gris_bleu", [(x * s * 0.6, y + 0.15, 9.05), (x * s, y, 8.8),
                                                              (x * s * 1.02, y - 0.1, 8.5)], 0.035, sides=4))
+    pieces += touffes_sur(m, "tc", CRANE, grille(-0.3, 0.85, 4, 20, 160, 6), arriere_et_bas, 2, 1.0, 0.2, pelage,
+                          0.25, souleve=0.3)
     for s in (1, -1):
         pieces.append(m.box(f"narine{s}", "gueule", (0.16 * s, -12.72, 8.85), (0.08, 0.06, 0.06), bevel=0.3))
         pieces += oeil(m, s)
@@ -395,13 +427,19 @@ def tete(m):
                               (1.35 * s, -8.0, 9.85)], [0.15, 0.2, 0.18, 0.06], sides=6))
         pieces.append(m.ellipsoid(f"tache{s}", "gris_bleu_clair", Ellipsoid((0.75 * s, -9.0, 10.0), (0.28, 0.24, 0.14))))
         # grande oreille triangulaire, enracinée dans le crâne, avec une touffe claire à l'intérieur
-        racine = Vector((0.72 * s, -7.3, 10.5))
+        racine = Vector((0.68 * s, -7.3, 10.15))
         assert CRANE.inside(racine), "l'oreille doit être enracinée dans le crâne"
-        ext = [racine, Vector((1.0 * s, -6.9, 11.9)), Vector((1.2 * s, -6.7, 13.2))]
-        pieces.append(m.tube(f"oreille{s}", "gris_bleu_fonce", ext, [0.85, 0.58, 0.0], sides=6, ring_scale=(1.0, 0.3),
+        ext = [racine, Vector((0.95 * s, -6.95, 11.7)), Vector((1.15 * s, -6.7, 13.0))]
+        pieces.append(m.tube(f"oreille{s}", "gris_bleu_fonce", ext, [0.7, 0.55, 0.0], sides=6, ring_scale=(1.0, 0.32),
                              up=(0, 1, 0)))
+        # base de l'oreille : bourrelet de peau + touffes qui la soudent au crâne (plus de coin dans le vide)
+        base_oreille = Ellipsoid((0.75 * s, -7.2, 10.45), (0.7, 0.42, 0.55))
+        assert CRANE.inside(base_oreille.c), "la base de l'oreille doit être dans le crâne"
+        pieces.append(m.ellipsoid(f"base_oreille{s}", "gris_bleu_fonce", base_oreille, jitter=0.03))
+        pieces += touffes_sur(m, f"bo{s}", base_oreille, [(t, a) for t in (-0.3, 0.4) for a in range(0, 360, 60)],
+                              lambda n: n + Vector((0, 0.6, 0.3)), 2, 0.8, 0.18, pelage, 0.15, souleve=0.4)
         pieces.append(m.tube(f"oreille_int{s}", "gris_bleu_clair", [p + Vector((0, -0.16, 0.05)) for p in ext],
-                             [0.55, 0.38, 0.0], sides=6, ring_scale=(1.0, 0.2), up=(0, 1, 0)))
+                             [0.45, 0.36, 0.0], sides=6, ring_scale=(1.0, 0.2), up=(0, 1, 0)))
         pieces += touffe(m, f"oreille_touffe{s}", Vector((0.95 * s, -7.1, 11.2)), (0.2 * s, -1, 0), HAUT, 3, 0.8, 0.12,
                          ("gris_bleu_clair",), 0.15, 5, souleve=0.4)
         # joues : grosse collerette de touffes claires vers l'arrière et l'extérieur

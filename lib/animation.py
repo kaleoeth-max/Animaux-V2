@@ -9,12 +9,14 @@ QUEUE (6 points), CHARNIERE, OUVERTURE, repere_oeil(), PAUPIERE_SORTIE et un dic
   pas_marche, leve_marche, pas_course, leve_course   foulées (studs)
   couche, tete_couche, avant_couche                  pose de sommeil (descente du corps, tête, pieds avant)
   croc_tete, croc_ouverture, croc_pique              facultatifs : amplitude du coup de croc (défaut 16, 22, 6)
+  sommeil="boule" + boule_avant, boule_arriere (pieds), boule_tete, boule_queue, boule_roulis, boule_lacet
+                                                     facultatifs : sommeil roulé en boule au lieu du sphinx
 Un module d'animations (ex. scripts/animations_belier.py) appelle configurer(modele) puis main().
 
 Animations (30 images/s, sur place) :
   Marche        1,3 s en boucle : pas en diagonale, corps qui tangue, queue qui balance
   Course        0,7 s en boucle : galop, grandes foulées
-  Sommeil       3,0 s en boucle : couché en sphinx, yeux fermés, queue enroulée, respiration lente
+  Sommeil       3,0 s en boucle : couché en sphinx (ou roulé en boule), yeux fermés, respiration lente
   CoupDeCroc    1,2 s           : recul, gueule grande ouverte, attaque vers l'avant, claquement
 
 Sorties dans exports/<NAME>/ : <NAME>_rig.fbx (modèle + os), <NAME>_<Anim>.fbx (une animation par fichier),
@@ -298,6 +300,37 @@ def anim_course(u):
 
 
 def anim_sommeil(u):
+    """Sommeil : en sphinx (par défaut) ou roulé en boule si ANIM["sommeil"] == "boule"."""
+    if ANIM.get("sommeil") == "boule":
+        return anim_sommeil_boule(u)
+    return anim_sommeil_sphinx(u)
+
+
+def anim_sommeil_boule(u):
+    """Roulé en boule au sol : corps posé et un peu basculé sur le côté, pattes repliées dessous, tête tournée
+    vers le flanc museau au sol, queue enroulée vers l'avant jusqu'au museau, yeux fermés, respiration lente."""
+    souffle = math.sin(TAU * u)
+    pose = {
+        "Torse": ((1.0 * souffle, ANIM.get("boule_roulis", 12), ANIM.get("boule_lacet", 8)),
+                  (0, 0, ANIM["couche"] + 0.08 * souffle)),
+        "Tete": ((ANIM["tete_couche"] + 0.8 * souffle, 0, -ANIM.get("boule_tete", 70)), (0, 0, 0)),
+        "Machoire": ((-g.OUVERTURE, 0, 0), (0, 0, 0)),
+    }
+    for cote, sg in (("G", 1), ("D", -1)):
+        n = g.repere_oeil(sg)[1]
+        pose[f"Paupiere_{cote}"] = ((0, 0, 0), tuple(n * g.PAUPIERE_SORTIE))
+    courbe = ANIM.get("boule_queue", 38)
+    courbes = courbe if isinstance(courbe, (tuple, list)) else (courbe,) * 4  # un angle par os, de la base au bout
+    for i in range(4):
+        pose[f"Queue{i + 1}"] = ((ANIM.get("boule_queue_monte", 8) if i == 0 else 0, 0,
+                                  courbes[i] + 2 * souffle * (i == 3)), (0, 0, 0))
+    cibles = {}
+    for nom, _, _, avant in g.PATTES:
+        cibles[nom] = ANIM["boule_avant"] if avant else ANIM["boule_arriere"]
+    return ik_pattes(pose, cibles)
+
+
+def anim_sommeil_sphinx(u):
     """Couché en sphinx, menton posé, yeux fermés, queue enroulée sur le côté, respiration lente."""
     souffle = math.sin(TAU * u)
     pose = {

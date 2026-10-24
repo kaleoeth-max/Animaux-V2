@@ -96,6 +96,11 @@ Paramètres de surface d'un Ellipsoid : `t` ∈ [-1, 1] le long de l'axe, `a` en
   surface** (Bélier : écailles ; Rat : fourrure ; Loup : volumes lisses à facettes + marques + touffes `touffe()` en
   dents de scie aux endroits typiques), sa propre **dentition** (loup : incisives, grands crocs, petites dents
   triangulaires) et son propre **motif sur le dos** (loup : tiges de ronces en arc au lieu d'une crête).
+- **Rien ne doit sembler flotter** : une pièce large et plate (oreille) posée sur une surface qui s'arrondit laisse un
+  coin dans le vide même si sa racine est dans le crâne → ajouter un volume de base (bourrelet + touffes). Même chose
+  pour les tiges qui sortent d'un corps lisse → nœud de bois à la base, ou les noyer dans la fourrure.
+- **Fourrure du loup** (choix de l'utilisateur) : les grandes touffes en dents de scie de la queue, sur tout le corps
+  (`touffes_sur` + `grille`), couleur selon la latitude (sombre dessus, claire dessous) pour garder les marques.
 - **Ronces réalistes** (loup, `gardien_loup.py`) : `ronce()` = tige effilée (bois `ronce_fonce` puis pousse
   `tige_ronce`), épines crochues vers la base tous les ~0,3 stud, `feuille_trifoliee()`, `mure()` (grappe de
   drupéoles noires ou rouges), `fleur()`. Tiges du dos avec `tige_en_arc()` : elles doivent retomber **dans le vide
