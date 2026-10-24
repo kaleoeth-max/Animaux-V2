@@ -32,7 +32,7 @@ Sorties :
 |---|---|---|---|---|---|
 | Prairie | **Bélier Colosse** (`Gardien_Prairie_Belier`) ✅ validé (commit `59db35f`) | tank / boss — bête couverte d'écailles, pattes à frange d'écailles et grands pieds griffus, longue gueule à crocs et mâchoire massive à plaques, cornes annelées | ≈ 11 × 33 × 14 (haut) | 12 | ~21 200 (max ~4 100 par pièce) |
 | **Champ** | **Rat Ravageur** (`Gardien_Champ_Rat`) ✅ validé (commit `d37058e`) | rapide et vicieux — rat mutant au dos voûté, **fourrure** anthracite à fines traînées vert toxique, épines couleur os, épis de blé mutants sur le dos, incisives jaunes, moustaches, gueule à crocs, yeux rouges, mains roses à 4 doigts + pouce, longs pieds à plat, queue annelée épineuse | ≈ 10 × 34 × 13 (haut) | 13 | ~33 600 (max ~7 500 par pièce) |
-| **Forêt** | **Loup des Ronces** (`Gardien_Foret_Loup`) | chasseur rapide — fourrure en grandes touffes en dents de scie sur tout le corps (sombre dessus, claire dessous), crinière, queue en panache, dentition de loup qui grogne, yeux violets à pupille ronde, oreilles soudées au crâne par une base touffue ; ronces réalistes qui jaillissent du dos et s'enroulent au cou, aux pattes et à la queue (épines crochues, feuilles trifoliées, mûres, fleurs) ; dort roulé en boule | ≈ 8,5 × 29 × 13 (haut) | 13 | ~29 700 (max ~7 900 par pièce) |
+| **Forêt** | **Loup des Ronces** (`Gardien_Foret_Loup`) | chasseur rapide — fourrure en grandes touffes en dents de scie sur tout le corps (sombre dessus, claire dessous), crinière, queue en panache, dentition de loup qui grogne, yeux violets à pupille ronde, oreilles soudées au crâne par une base touffue ; grosses ronces réalistes enroulées autour du torse, du cou, des pattes et de la queue (épines crochues, feuilles trifoliées, mûres, fleurs) ; dort couché sur le flanc | ≈ 8,5 × 29 × 13 (haut) | 13 | ~32 800 (max ~9 700 par pièce) |
 | Prairie | **Grand Lièvre Sentinelle** (`Gardien_Prairie_Lievre`) | vigie, rapide — style « blocs » chibi | ≈ 7 × 6 × 16 (haut) | 10 | ~2200 |
 
 ![Bélier](previews/Gardien_Prairie_Belier_avant.png)
@@ -64,7 +64,7 @@ aux os ; la queue et les pattes se plient en douceur. Les pieds restent posés a
 |---|---|---|---|
 | `Marche` | 1,3 s | oui | pas en diagonale sur place (Bélier ~4,5 studs/s, Rat ~3,9, Loup ~5,1) |
 | `Course` | 0,7 s | oui | galop, grandes foulées (Bélier ~11,5 studs/s, Rat ~8,5, Loup ~10,9) |
-| `Sommeil` | 3,0 s | oui | couché en sphinx (Bélier, Rat) ou roulé en boule (Loup), yeux fermés, respiration lente |
+| `Sommeil` | 3,0 s | oui | couché en sphinx (Bélier, Rat) ou sur le flanc (Loup), yeux fermés, respiration lente |
 | `CoupDeCroc` | 1,2 s | non | recul, gueule grande ouverte, attaque, claquement |
 
 ![Marche](previews/Gardien_Prairie_Belier_anim_Marche.gif)

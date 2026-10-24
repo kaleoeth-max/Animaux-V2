@@ -44,10 +44,8 @@ ANIM = dict(
     pieces_torse=("Corps", "Ronces"),
     pas_marche=1.7, leve_marche=0.9, pas_course=2.0, leve_course=1.2,
     couche=-3.85, tete_couche=34, avant_couche=(-1.2, 0.0),
-    # sommeil roulé en boule
-    # (la queue tourne fort à la base puis longe le flanc, la tête vient se poser du même côté)
-    sommeil="boule", boule_avant=(0.3, 0.0), boule_arriere=(-2.6, 0.0), boule_tete=85, boule_queue=(75, 55, 30, 20),
-    boule_roulis=7, boule_lacet=-5, boule_queue_monte=12,
+    # sommeil couché sur le flanc (choix de l'utilisateur, à la place de la boule)
+    sommeil="cote", cote_roulis=88, cote_epaisseur=3.4, cote_tete=(8, 0, 28), cote_queue=(12, 10, 8, 6),
 )
 
 
@@ -184,7 +182,7 @@ def ronce(m, prefixe, pts, seed, rayon=0.14, feuilles=1.3, fruits=2.0, fleurs=Tr
         tg = seg.normalized()
         ref = tg.orthogonal().normalized()
         if longueur >= prochaine_epine:
-            prochaine_epine += rng.uniform(0.26, 0.38)
+            prochaine_epine += rng.uniform(0.26, 0.38) + rayon * 0.8  # plus la tige est grosse, plus elles s'espacent
             tour += 1
             a = 2.1 * tour + rng.uniform(-0.3, 0.3)  # épines réparties tout autour de la tige
             dehors = ref * math.cos(a) + tg.cross(ref) * math.sin(a)
@@ -239,15 +237,19 @@ def enroulement(ell, t0, t1, a0, a1, seed, n=40, lift=0.12):
 
 def ronces_du_corps(m):
     pieces = []
-    # tiges qui jaillissent du dos en arc (elles remplacent la crête d'épines des autres gardiens)
-    for i, (x, y, sx, sy, L, H) in enumerate(((0.5, -2.4, 1.0, 0.35, 3.6, 2.2), (-0.6, -0.8, -1.0, 0.45, 4.0, 2.9),
-                                              (0.6, 1.3, 1.0, 0.5, 3.3, 1.8), (-0.5, 2.9, -1.0, 0.6, 3.0, 2.3),
-                                              (0.1, 0.4, 0.3, 1.0, 2.6, 3.2))):
+    # grosses tiges qui s'enroulent autour du torse, collées au corps (posées dans la fourrure)
+    for i, (ell, t0, t1, a0, a1) in enumerate(((POITRAIL, -0.6, 0.5, 30, 500), (DOS, -0.75, 0.7, 150, 640),
+                                               (HANCHES, -0.45, 0.85, 300, 790))):
+        pieces += ronce(m, f"r_torse{i}", enroulement(ell, t0, t1, a0, a1, 50 + i, n=40, lift=0.4), 50 + i, rayon=0.24,
+                        feuilles=1.5, fruits=2.6)
+    # deux pousses courtes qui dépassent des épaules
+    for i, (x, y, sx, sy) in enumerate(((0.6, -2.6, 1.0, 0.4), (-0.6, -2.2, -1.0, 0.5))):
         depart = Vector((x, y, dessus(x, y) - 0.35))
-        pieces.append(m.ico(f"noeud{i}", "ronce_fonce", depart + HAUT * 0.25, (0.32, 0.32, 0.4), jitter=0.04, seed=i))
-        pieces += ronce(m, f"r_dos{i}", tige_en_arc(depart, (sx, sy, 0), L, H, i), 10 + i, rayon=0.12)
-    # collier de ronces au cou, lâche et irrégulier
-    pieces += ronce(m, "r_cou", enroulement(COU, -0.5, 0.55, 40, 690, 3, n=44, lift=0.3), 3, rayon=0.15,
+        pieces.append(m.ico(f"noeud{i}", "ronce_fonce", depart + HAUT * 0.25, (0.36, 0.36, 0.42), jitter=0.04, seed=i))
+        pieces += ronce(m, f"r_pousse{i}", tige_en_arc(depart, (sx, sy, 0), 1.8, 1.0, i, n=14), 10 + i, rayon=0.17,
+                        feuilles=0.8, fruits=1.0)
+    # collier de ronces au cou
+    pieces += ronce(m, "r_cou", enroulement(COU, -0.5, 0.55, 40, 690, 3, n=44, lift=0.4), 3, rayon=0.24,
                     feuilles=1.6, fruits=2.6)
     m.join("Ronces", pieces)
 
@@ -338,8 +340,8 @@ def patte(m, nom, x, y, avant):
     if nom in PATTES_AVEC_RONCE:  # ronce enroulée irrégulièrement autour du bas de la patte
         p1, p2, rayons = segments[-1]
         lien = Ellipsoid.between(p1, p2, rayons[0] * 1.05, extra=1.0, up=(0, 1, 0))
-        pieces += ronce(m, "r_patte", enroulement(lien, -0.85, 0.75, 0, 640, 20 + int(x * 10), n=28, lift=0.08),
-                        20 + int(x * 10), rayon=0.1, feuilles=1.5, fruits=0)
+        pieces += ronce(m, "r_patte", enroulement(lien, -0.85, 0.75, 0, 640, 20 + int(x * 10), n=28, lift=0.12),
+                        20 + int(x * 10), rayon=0.17, feuilles=1.5, fruits=0)
 
     # patte de loup : coussinet, 4 doigts, griffes sombres + ergot arrière
     pied = Vector((poignet.x, poignet.y - 0.45, 0.45))
@@ -375,7 +377,7 @@ def queue(m):
                               lambda n, d=d: d + n * 0.35, 3, 1.8 + 0.3 * (i in (1, 2, 3)), 0.28,
                               (lambda t, a: ("gris_bleu_fonce",)) if bout else pelage, 0.35, souleve=0.35)
     lien = Ellipsoid.between(QUEUE[0], QUEUE[2], 0.62, extra=1.0)
-    pieces += ronce(m, "r_queue", enroulement(lien, -0.8, 0.8, 0, 560, 40, n=26, lift=0.3), 40, rayon=0.1,
+    pieces += ronce(m, "r_queue", enroulement(lien, -0.8, 0.8, 0, 560, 40, n=26, lift=0.35), 40, rayon=0.18,
                     feuilles=1.4, fruits=2.2)
     m.join("Queue", pieces)
 

@@ -8,6 +8,13 @@ pose de sommeil, amplitude du coup de croc. Régler ces valeurs jusqu'à ce que 
 (ex. pour le rat, tête basse : `croc_tete=2`, `croc_pique=1.5` sinon la mâchoire plonge dans le sol ;
 pattes courtes : `pas_course=1.55` sinon les chevilles n'atteignent plus leur cible).
 
+**Sommeil couché sur le flanc** (loup, choix final de l'utilisateur) : `sommeil="cote"` ; tout le corps bascule
+autour de l'os `Racine` (`cote_roulis` ≈ 88°) puis remonte de `cote_epaisseur` : prendre la demi-largeur des
+**épaules/cuisses avec la fourrure** (≈ 3,4 pour le loup), pas celle du torse, sinon la patte du dessous passe sous
+le sol. Pas d'IK dans cette pose (pattes détendues `cote_pattes_avant/arriere`). Après la bascule les axes changent :
+mesurer plutôt que deviner (pour le loup, `cote_tete` rz > 0 pose la tête au sol ; `cote_queue` rz > 0 évite que la
+queue traverse le sol).
+
 **Sommeil roulé en boule** (loup) : `sommeil="boule"` dans `ANIM` + `boule_avant`, `boule_arriere` (pieds),
 `boule_tete`, `boule_queue` (un angle par os de queue : fort à la base puis plus faible, sinon la queue fait un grand
 arc loin du corps), `boule_roulis`, `boule_lacet` (garder petit : le lacet du torse fait glisser les pattes avant de

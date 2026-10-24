@@ -11,6 +11,8 @@ QUEUE (6 points), CHARNIERE, OUVERTURE, repere_oeil(), PAUPIERE_SORTIE et un dic
   croc_tete, croc_ouverture, croc_pique              facultatifs : amplitude du coup de croc (défaut 16, 22, 6)
   sommeil="boule" + boule_avant, boule_arriere (pieds), boule_tete, boule_queue, boule_roulis, boule_lacet
                                                      facultatifs : sommeil roulé en boule au lieu du sphinx
+  sommeil="cote" + cote_roulis, cote_epaisseur, cote_tete, cote_queue, cote_pattes_avant, cote_pattes_arriere
+                                                     facultatifs : sommeil couché sur le flanc
 Un module d'animations (ex. scripts/animations_belier.py) appelle configurer(modele) puis main().
 
 Animations (30 images/s, sur place) :
@@ -300,10 +302,40 @@ def anim_course(u):
 
 
 def anim_sommeil(u):
-    """Sommeil : en sphinx (par défaut) ou roulé en boule si ANIM["sommeil"] == "boule"."""
+    """Sommeil : en sphinx (par défaut), roulé en boule (ANIM["sommeil"] == "boule") ou couché sur le côté
+    (ANIM["sommeil"] == "cote")."""
     if ANIM.get("sommeil") == "boule":
         return anim_sommeil_boule(u)
+    if ANIM.get("sommeil") == "cote":
+        return anim_sommeil_cote(u)
     return anim_sommeil_sphinx(u)
+
+
+def anim_sommeil_cote(u):
+    """Couché sur le flanc : tout le corps bascule d'environ 90° autour de l'os Racine et repose au sol, pattes
+    allongées sur le côté et un peu pliées, tête posée, queue qui retombe, yeux fermés, respiration lente."""
+    souffle = math.sin(TAU * u)
+    angle = ANIM.get("cote_roulis", 88)
+    h = Vector(ANIM["torse"][0]).z               # hauteur du corps au repos
+    epaisseur = ANIM.get("cote_epaisseur", 2.3)  # demi-épaisseur du corps (fourrure comprise) posé sur le flanc
+    a = math.radians(angle)
+    pose = {
+        "Racine": ((0, angle, 0), (-h * math.sin(a), 0, epaisseur - h * math.cos(a))),
+        "Torse": ((0, 0, 0), (0, 0, 0.06 * souffle)),  # respiration : le flanc se soulève
+        "Tete": (ANIM.get("cote_tete", (8, 0, 0)), (0, 0, 0)),
+        "Machoire": ((-g.OUVERTURE, 0, 0), (0, 0, 0)),
+    }
+    for cote, sg in (("G", 1), ("D", -1)):
+        n = g.repere_oeil(sg)[1]
+        pose[f"Paupiere_{cote}"] = ((0, 0, 0), tuple(n * g.PAUPIERE_SORTIE))
+    for i, rz in enumerate(ANIM.get("cote_queue", (-12, -10, -8, -6))):
+        pose[f"Queue{i + 1}"] = ((ANIM.get("cote_queue_rx", 0) if i == 0 else 0, 0, rz), (0, 0, 0))
+    # pattes détendues : les avant vers l'avant, les arrière vers l'arrière, un peu pliées
+    for nom, _, _, avant in g.PATTES:
+        angles = ANIM.get("cote_pattes_avant", (-25, 35)) if avant else ANIM.get("cote_pattes_arriere", (20, -25, 15))
+        for k, rx in enumerate(angles):
+            pose[f"{nom}_{k + 1}"] = ((rx, 0, 0), (0, 0, 0))
+    return pose
 
 
 def anim_sommeil_boule(u):

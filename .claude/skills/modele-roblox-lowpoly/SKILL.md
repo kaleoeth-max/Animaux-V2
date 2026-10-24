@@ -101,6 +101,9 @@ Paramètres de surface d'un Ellipsoid : `t` ∈ [-1, 1] le long de l'axe, `a` en
   pour les tiges qui sortent d'un corps lisse → nœud de bois à la base, ou les noyer dans la fourrure.
 - **Fourrure du loup** (choix de l'utilisateur) : les grandes touffes en dents de scie de la queue, sur tout le corps
   (`touffes_sur` + `grille`), couleur selon la latitude (sombre dessus, claire dessous) pour garder les marques.
+- **Ronces du loup (version validée)** : grosses (`rayon` ≈ 0,24 sur le torse, 0,17 sur les pattes) et **collées au
+  corps** : enroulées autour du torse (`enroulement` sur POITRAIL / DOS / HANCHES, `lift` ≈ 0,4 dans la fourrure)
+  plutôt que des arcs au-dessus du dos ; espacer les épines selon le rayon pour rester sous 10 000 triangles.
 - **Ronces réalistes** (loup, `gardien_loup.py`) : `ronce()` = tige effilée (bois `ronce_fonce` puis pousse
   `tige_ronce`), épines crochues vers la base tous les ~0,3 stud, `feuille_trifoliee()`, `mure()` (grappe de
   drupéoles noires ou rouges), `fleur()`. Tiges du dos avec `tige_en_arc()` : elles doivent retomber **dans le vide
